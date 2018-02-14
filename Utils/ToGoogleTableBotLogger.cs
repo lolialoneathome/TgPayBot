@@ -50,14 +50,14 @@ namespace Utils.Logger
                     = SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum.INSERTROWS;
                 ValueRange valueRange = new ValueRange();
 
-                var oblist = new List<object>() { DateTime.Now, message, user };
+                var oblist = new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), message, user };
                 valueRange.Values = new List<IList<object>> { oblist };
 
 
                 SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _config.SpreadsheetLog.Id, range);
                 request.ValueInputOption = valueInputOption;
                 request.InsertDataOption = insertDataOption;
-
+                request.ResponseDateTimeRenderOption = SpreadsheetsResource.ValuesResource.AppendRequest.ResponseDateTimeRenderOptionEnum.FORMATTEDSTRING;
                 AppendValuesResponse response = request.Execute();
             }
             catch (Exception err)
