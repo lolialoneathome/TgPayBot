@@ -56,7 +56,7 @@ namespace Sender.Quartz
                 //["quartz.jobStore.driverDelegateType"] = "Quartz.Impl.AdoJobStore.SqlServerDelegate, Quartz",
                 //["quartz.dataSource.default.provider"] = "sqlite-provider",
                 //["quartz.dataSource.default.connectionString"] = @"DataSource=quartz.db",
-                ["quartz.threadPool.threadCount"] = "5"
+                //["quartz.threadPool.threadCount"] = "5"
             };
 
             var schedulerFactory = new StdSchedulerFactory(properties);
@@ -72,9 +72,9 @@ namespace Sender.Quartz
             var paymentsInfoTrigger = TriggerBuilder.Create()
                 .WithIdentity("SendPaymentsTrigger", "group1")
                 .WithSimpleSchedule(x => x
-                    //.WithIntervalInMinutes(1)
-                    .WithIntervalInSeconds(1)
-                    .WithRepeatCount(100))
+                    .WithIntervalInMinutes(10)
+                    //.WithIntervalInSeconds(5)
+                    .WithRepeatCount(1))
                     //.RepeatForever())
                 .StartNow()
                 //.WithCronSchedule("0 0 / 5 * ** ?")
@@ -82,8 +82,7 @@ namespace Sender.Quartz
 
             
             _scheduler.ScheduleJob(paymentsInfoJob, paymentsInfoTrigger).Wait();
-            
-            //_scheduler.TriggerJob(new JobKey("SendPaymentsInfo", "group1")).Wait();
+            //_scheduler.TriggerJob(new JobKey("SendPaymentsInfo", "group1"));
         }
 
         // initiates shutdown of the scheduler, and waits until jobs exit gracefully (within allotted timeout)

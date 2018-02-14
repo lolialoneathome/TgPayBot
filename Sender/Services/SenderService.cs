@@ -8,11 +8,13 @@ using Google.Apis.Util.Store;
 using Newtonsoft.Json;
 using PayBot.Configuration;
 using Sender.Entities;
+using Sqllite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 
 namespace Sender.Services
 {
@@ -26,13 +28,72 @@ namespace Sender.Services
 
         public async Task<bool> Send(CancellationToken cancellation)
         {
-            var service = CreateService();
-            var config = GetConfig();
-            var rows = GetData(config, service);
+            try {
+                var service = CreateService();
+                var config = GetConfig();
+                var rows = GetData(config, service);
+                if (rows != null) {
+                    foreach (var row in rows.OrderByDescending(x => x.LastModifiedDate))
+                    {
+                        if (row.Status.ToLower() == "надо отправить" && row.MessageSended.ToLower() != "да")
+                        {
+                            var text = row.MessageText;
+                            var tgUser = row.TgUser;
 
+                            var sendMessageResult = await SendMessageAsync(text, tgUser, config.db_path, config.bot_api_key);
+                            if (sendMessageResult)
+                            {
+                                var updateResult = UpdateTableData(service, row.SheetId, row.List, row.CellForUpdate);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception err)
+            {
+
+            }
             return await Task.FromResult(true);
         }
 
+        private bool UpdateTableData(SheetsService service, string sheetId, string list, string cellForUpdate)
+        {
+            try {
+                var range = $"{list}!{cellForUpdate}";
+                ValueRange valueRange = new ValueRange();
+
+                var oblist = new List<object>() { "да" };
+                valueRange.Values = new List<IList<object>> { oblist };
+
+                SpreadsheetsResource.ValuesResource.UpdateRequest update = service.Spreadsheets.Values.Update(valueRange, sheetId, range);
+                update.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+                UpdateValuesResponse result = update.Execute();
+                return true;
+            }
+            catch (Exception err)
+            {
+                //Logging
+            }
+            return false;
+        }
+
+        private async Task<bool> SendMessageAsync(string text, string tgUser, string dbpath, string botKey)
+        {
+            ChatId destId = null;
+            using (var db = new UserContext(dbpath))
+            {
+                var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower());
+                if (user == null)
+                {
+                    Console.WriteLine("Не могу отправить сообщение пользователю {0}, т.к. он не добавил бота в телеграмме", tgUser);
+                    return false;
+                }
+                destId = new ChatId(user.ChatId);
+            }
+            var bot = new Telegram.Bot.TelegramBotClient(botKey);
+            await bot.SendTextMessageAsync(destId, text);
+            return true;
+        }
 
         private IEnumerable<ValueRow> GetData(Config config, SheetsService service)
         {
@@ -42,62 +103,49 @@ namespace Sender.Services
                 var spreadsheetId = spreadsheet.Id;
                 foreach (var list in spreadsheet.Lists)
                 {
-
-                    var dateRange = $"{list.listname}!{list.date}2:{list.date}";
-                    var statusRange = $"{list.listname}!{list.status}2:{list.date}";
-                    var isSendedRange = $"{list.listname}!{list.isSendedColumn}2:{list.date}";
-                    var textRange = $"{list.listname}!{list.message_text}2:{list.date}";
-                    var tgRange = $"{list.listname}!{list.tg_user}2:{list.date}";
-
-                    SpreadsheetsResource.ValuesResource.BatchGetRequest request =
-                        service.Spreadsheets.Values.BatchGet(spreadsheetId);
-                    request.MajorDimension = SpreadsheetsResource.ValuesResource.BatchGetRequest.MajorDimensionEnum.COLUMNS;
-                    request.Ranges = new string[] { dateRange, statusRange, isSendedRange, textRange, tgRange };
-
-
-                    BatchGetValuesResponse response = request.Execute();
-
-                    var dict = new Dictionary<int, ValueRow>();
-                    var itemCounter = 0;
-                    //Get date
-                    foreach (var row in response.ValueRanges[0].Values)
+                    bool allEmpty = false;
+                    var rowNum = 2;
+                    while(!allEmpty)
                     {
-                        dict[itemCounter] = new ValueRow()
+                        var dateRange = $"{list.listname}!{list.date}{rowNum}";
+                        var statusRange = $"{list.listname}!{list.status}{rowNum}";
+                        var isSendedRange = $"{list.listname}!{list.isSendedColumn}{rowNum}";
+                        var textRange = $"{list.listname}!{list.message_text}{rowNum}";
+                        var tgRange = $"{list.listname}!{list.tg_user}{rowNum}";
+
+                        SpreadsheetsResource.ValuesResource.BatchGetRequest request =
+                            service.Spreadsheets.Values.BatchGet(spreadsheetId);
+                        request.Ranges = new string[] { dateRange, statusRange, isSendedRange, textRange, tgRange };
+
+                        BatchGetValuesResponse response = request.Execute();
+                        var dict = new Dictionary<int, ValueRow>();
+                        //Get date
+                        DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null 
+                            ? Convert.ToDateTime(response.ValueRanges[0].Values?[0]?[0]) 
+                            : (DateTime?)null;
+                        var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
+                        var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
+                        var text = response.ValueRanges[3].Values?[0]?[0]?.ToString();
+                        var tg = response.ValueRanges[4].Values?[0]?[0]?.ToString();
+                        if (date == null && status == null && messageSended == null && text == null && tg == null )
                         {
-                            LastModifiedDate = Convert.ToDateTime(row[0].ToString())
+                            allEmpty = true;
+                            continue;
                         };
-                        itemCounter++;
+                        var row = new ValueRow()
+                        {
+                            LastModifiedDate = (DateTime)date,
+                            Status = status,
+                            MessageSended = messageSended,
+                            MessageText = text,
+                            TgUser = tg,
+                            SheetId = spreadsheetId,
+                            List = list.listname,
+                            CellForUpdate = $"{list.isSendedColumn}{rowNum}"
+                        };
+                        result.Add(row);
+                        rowNum++;
                     }
-                    itemCounter = 0;
-                    //Get status
-                    foreach (var row in response.ValueRanges[1].Values)
-                    {
-                        dict[itemCounter].Status = row[0].ToString();
-                        itemCounter++;
-                    }
-                    itemCounter = 0;
-                    //Get IS sended
-                    foreach (var row in response.ValueRanges[2].Values)
-                    {
-                        dict[itemCounter].IsSended = row[0].ToString().ToLower() == "да";
-                        itemCounter++;
-                    }
-                    itemCounter = 0;
-                    //Get message text
-                    foreach (var row in response.ValueRanges[3].Values)
-                    {
-                        dict[itemCounter].MessageText = row[0].ToString();
-                        itemCounter++;
-                    }
-                    itemCounter = 0;
-                    //Get tg user
-                    foreach (var row in response.ValueRanges[4].Values)
-                    {
-                        dict[itemCounter].TgUser = row[0].ToString();
-                        itemCounter++;
-                    }
-
-                    result.AddRange(dict.Select(x => x.Value));
                 }
             }
 
