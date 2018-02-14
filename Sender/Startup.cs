@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Logger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +31,9 @@ namespace Sender
             services.AddMvc();
 
             services.AddScoped<ISenderService, SenderService>();
+            services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
+            services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();
+
             services.AddScoped<SendPaymentsInfoJob>();
             services.AddSingleton(p =>
             {

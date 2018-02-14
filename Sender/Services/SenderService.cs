@@ -5,6 +5,7 @@ using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
+using Logger;
 using Newtonsoft.Json;
 using PayBot.Configuration;
 using Sender.Entities;
@@ -20,27 +21,27 @@ namespace Sender.Services
 {
     public class SenderService : ISenderService
     {
-        private const string _clientSecretPath = "../conf/client_secret.json";
-        private const string _credentials = "../conf/credentials";
-
-        private string[] scopes = { SheetsService.Scope.Spreadsheets };
-        private const string _applicationName = "Google Sheets API .NET Quickstart";
         private readonly Config _config;
+        private readonly ISheetsServiceProvider _sheetServiceProvider;
+        protected readonly IBotLogger _logger;
 
-        public SenderService(Config config) {
+        public SenderService(Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
 
         public async Task<bool> Send(CancellationToken cancellation)
         {
             try {
-                var service = CreateService();
+                var service = _sheetServiceProvider.GetService(); //Need get every times on start for correct token (Но это не точно ¯\_(ツ)_/¯)
                 var rows = GetData(_config, service);
                 if (rows != null) {
                     foreach (var row in rows.OrderByDescending(x => x.LastModifiedDate))
                     {
-                        if (row.Status.ToLower() == "надо отправить" && row.MessageSended.ToLower() != "да")
+                        if (row.Status != null && row.Status.ToLower() == "надо отправить" 
+                            && (row.MessageSended == null || row.MessageSended.ToLower() != "да"))
                         {
                             var text = row.MessageText;
                             var tgUser = row.TgUser;
@@ -53,12 +54,13 @@ namespace Sender.Services
                         }
                     }
                 }
+                return await Task.FromResult(true);
             }
             catch (Exception err)
             {
-
+                _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
-            return await Task.FromResult(true);
+            return await Task.FromResult(false);
         }
 
         private bool UpdateTableData(SheetsService service, string sheetId, string list, string cellForUpdate)
@@ -77,109 +79,100 @@ namespace Sender.Services
             }
             catch (Exception err)
             {
-                //Logging
+                _logger.LogError($"Произошла непредвиденная ошибка во время обновления данных в таблице на листе {list} в ячейке {cellForUpdate}! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
             return false;
         }
 
         private async Task<bool> SendMessageAsync(string text, string tgUser, string dbpath, string botKey)
         {
-            ChatId destId = null;
-            using (var db = new UserContext(dbpath))
-            {
-                var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower());
-                if (user == null)
+            try {
+                ChatId destId = null;
+                using (var db = new UserContext(dbpath))
                 {
-                    Console.WriteLine("Не могу отправить сообщение пользователю {0}, т.к. он не добавил бота в телеграмме", tgUser);
-                    return false;
+                    var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower());
+                    if (user == null)
+                    {
+                        Console.WriteLine("Не могу отправить сообщение пользователю {0}, т.к. он не добавил бота в телеграмме", tgUser);
+                        return false;
+                    }
+                    destId = new ChatId(user.ChatId);
                 }
-                destId = new ChatId(user.ChatId);
+                var bot = new Telegram.Bot.TelegramBotClient(botKey);
+                await bot.SendTextMessageAsync(destId, text);
+
+                _logger.LogSended($"Отправлено ообщение с текстом {text}", tgUser);
+
+                return true;
             }
-            var bot = new Telegram.Bot.TelegramBotClient(botKey);
-            await bot.SendTextMessageAsync(destId, text);
-            return true;
+            catch(Exception err)
+            {
+                _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщения [{text}] пользоватею {tgUser}! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
+            }
+            return false;
         }
 
         private IEnumerable<ValueRow> GetData(Config config, SheetsService service)
         {
             var result = new List<ValueRow>();
-            foreach (var spreadsheet in config.Spreadsheets)
-            {
-                var spreadsheetId = spreadsheet.Id;
-                foreach (var list in spreadsheet.Lists)
+            try {
+                foreach (var spreadsheet in config.Spreadsheets)
                 {
-                    bool allEmpty = false;
-                    var rowNum = 2;
-                    while(!allEmpty)
+                    var spreadsheetId = spreadsheet.Id;
+                    foreach (var list in spreadsheet.Lists)
                     {
-                        var dateRange = $"{list.ListName}!{list.Date}{rowNum}";
-                        var statusRange = $"{list.ListName}!{list.Status}{rowNum}";
-                        var isSendedRange = $"{list.ListName}!{list.IsSendedColumn}{rowNum}";
-                        var textRange = $"{list.ListName}!{list.MessageText}{rowNum}";
-                        var tgRange = $"{list.ListName}!{list.TgUser}{rowNum}";
-
-                        SpreadsheetsResource.ValuesResource.BatchGetRequest request =
-                            service.Spreadsheets.Values.BatchGet(spreadsheetId);
-                        request.Ranges = new string[] { dateRange, statusRange, isSendedRange, textRange, tgRange };
-
-                        BatchGetValuesResponse response = request.Execute();
-                        var dict = new Dictionary<int, ValueRow>();
-                        //Get date
-                        DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null 
-                            ? Convert.ToDateTime(response.ValueRanges[0].Values?[0]?[0]) 
-                            : (DateTime?)null;
-                        var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
-                        var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
-                        var text = response.ValueRanges[3].Values?[0]?[0]?.ToString();
-                        var tg = response.ValueRanges[4].Values?[0]?[0]?.ToString();
-                        if (date == null && status == null && messageSended == null && text == null && tg == null )
+                        bool allEmpty = false;
+                        var rowNum = 2;
+                        while (!allEmpty)
                         {
-                            allEmpty = true;
-                            continue;
-                        };
-                        var row = new ValueRow()
-                        {
-                            LastModifiedDate = (DateTime)date,
-                            Status = status,
-                            MessageSended = messageSended,
-                            MessageText = text,
-                            TgUser = tg,
-                            SheetId = spreadsheetId,
-                            List = list.ListName,
-                            CellForUpdate = $"{list.IsSendedColumn}{rowNum}"
-                        };
-                        result.Add(row);
-                        rowNum++;
+                            var dateRange = $"{list.ListName}!{list.Date}{rowNum}";
+                            var statusRange = $"{list.ListName}!{list.Status}{rowNum}";
+                            var isSendedRange = $"{list.ListName}!{list.IsSendedColumn}{rowNum}";
+                            var textRange = $"{list.ListName}!{list.MessageText}{rowNum}";
+                            var tgRange = $"{list.ListName}!{list.TgUser}{rowNum}";
+
+                            SpreadsheetsResource.ValuesResource.BatchGetRequest request =
+                                service.Spreadsheets.Values.BatchGet(spreadsheetId);
+                            request.Ranges = new string[] { dateRange, statusRange, isSendedRange, textRange, tgRange };
+
+                            BatchGetValuesResponse response = request.Execute();
+                            var dict = new Dictionary<int, ValueRow>();
+                            //Get date
+                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null
+                                ? Convert.ToDateTime(response.ValueRanges[0].Values?[0]?[0])
+                                : (DateTime?)null;
+                            var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
+                            var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
+                            var text = response.ValueRanges[3].Values?[0]?[0]?.ToString();
+                            var tg = response.ValueRanges[4].Values?[0]?[0]?.ToString();
+                            if (date == null && status == null && messageSended == null && text == null && tg == null)
+                            {
+                                allEmpty = true;
+                                continue;
+                            };
+                            var row = new ValueRow()
+                            {
+                                LastModifiedDate = (DateTime)date,
+                                Status = status,
+                                MessageSended = messageSended,
+                                MessageText = text,
+                                TgUser = tg,
+                                SheetId = spreadsheetId,
+                                List = list.ListName,
+                                CellForUpdate = $"{list.IsSendedColumn}{rowNum}"
+                            };
+                            result.Add(row);
+                            rowNum++;
+                        }
                     }
                 }
             }
+            catch (Exception err)
+            {
+                _logger.LogError($"Произошла непредвиденная ошибка во время получения данных! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
+            }
 
             return result;
-        }
-
-        private SheetsService CreateService()
-        {
-            var json = System.IO.File.ReadAllText(_clientSecretPath);
-            Secret secret = JsonConvert.DeserializeObject<Secret>(json);
-
-            var googleFlowInitializer = new GoogleAuthorizationCodeFlow.Initializer()
-            {
-                ClientSecrets = new ClientSecrets
-                {
-                    ClientId = secret.installed.client_id,
-                    ClientSecret = secret.installed.client_secret
-                }
-            };
-            var token = (new FileDataStore(_credentials, true)).GetAsync<TokenResponse>("user").Result;
-
-            UserCredential credential = new UserCredential(new GoogleAuthorizationCodeFlow(googleFlowInitializer), "user", token);
-
-
-            return new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = _applicationName,
-            });
         }
     }
 }
