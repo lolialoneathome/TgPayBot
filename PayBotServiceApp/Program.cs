@@ -9,9 +9,7 @@ using Newtonsoft.Json;
 using Sqllite;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Telegram.Bot.Types;
 
 namespace PayBotServiceApp
