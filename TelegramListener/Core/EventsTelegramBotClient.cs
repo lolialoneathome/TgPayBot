@@ -36,13 +36,13 @@ namespace TelegramListener.Core
                 var keyboard = new Telegram.Bot.Types.ReplyMarkups.ReplyKeyboardMarkup
                 {
                     Keyboard = new[] {
-                                                new[]
-                                                {
-                                                    new Telegram.Bot.Types.KeyboardButton("Поделиться номером телефона") {
-                                                        RequestContact = true
-                                                    },
-                                                },
-                                            },
+                        new[]
+                        {
+                            new Telegram.Bot.Types.KeyboardButton("Поделиться номером телефона") {
+                                RequestContact = true
+                            },
+                        },
+                    },
                     ResizeKeyboard = true
                 };
 
@@ -96,29 +96,123 @@ namespace TelegramListener.Core
 
                     SendTextMessageAsync
                     (e.Update.Message.Chat.Id,
-                    "Ок, подписка отключена. Возвращайся!");
+                    "Ок, подписка отключена. Возвращайся! Для возвращения просто набери /start");
                 }
 
                 return;
+            }
+
+            if (message.Text == "/get_users")
+            {
+                using (var db = new UserContext(_config.DbPath))
+                {
+
+                    var user = db.Users.Where(x => x.ChatId == e.Update.Message.Chat.Id.ToString()).SingleOrDefault();
+                    if (_config.Admins.Contains(user.PhoneNumber)) {
+                        _logger.LogIncoming($"Запрос списка пользователей от администратора", user.PhoneNumber);
+
+                        var result = string.Join("\n",  db.Users.Select(x => $"{x.Username} {x.PhoneNumber}").ToArray());
+                        SendTextMessageAsync
+                            (e.Update.Message.Chat.Id,
+                            $"Список активных пользователей:\n{result}");
+
+                        return;
+                    }
+                }
+            }
+
+            if (message.Text == "/stop_sending")
+            {
+                using (var db = new UserContext(_config.DbPath))
+                {
+
+                    var user = db.Users.Where(x => x.ChatId == e.Update.Message.Chat.Id.ToString()).SingleOrDefault();
+                    if (_config.Admins.Contains(user.PhoneNumber))
+                    {
+                        using (var states = new StateContext(_config.DbPath))
+                        {
+                            if (states.States.First().IsEnabled == -1) {
+                                _logger.LogIncoming($"Попытка остановить рассылку, которая уже остановлена", user.PhoneNumber);
+
+                                SendTextMessageAsync
+                                    (e.Update.Message.Chat.Id,
+                                    $"Рассылка уже была остановлена и ещё не запущена");
+
+                                return;
+                            }
+
+                            var state = states.States.First();
+                            state.IsEnabled = -1;
+                            states.States.Update(state);
+                            states.SaveChanges();
+
+                            _logger.LogIncoming($"Рассылка остановлена", user.PhoneNumber);
+                            SendTextMessageAsync
+                                (e.Update.Message.Chat.Id,
+                                $"Рассылка остановлена");
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (message.Text == "/start_sending")
+            {
+                using (var db = new UserContext(_config.DbPath))
+                {
+
+                    var user = db.Users.Where(x => x.ChatId == e.Update.Message.Chat.Id.ToString()).SingleOrDefault();
+                    if (_config.Admins.Contains(user.PhoneNumber))
+                    {
+                        using (var states = new StateContext(_config.DbPath))
+                        {
+                            if (states.States.First().IsEnabled == 1)
+                            {
+                                _logger.LogIncoming($"Попытка включить рассылку, которая уже работает", user.PhoneNumber);
+
+                                SendTextMessageAsync
+                                    (e.Update.Message.Chat.Id,
+                                    $"Рассылка уже включена");
+                                return;
+                            }
+                            var state = states.States.First();
+                            state.IsEnabled = 1;
+                            states.States.Update(state);
+                            states.SaveChanges();
+
+                            _logger.LogIncoming($"Рассылка возобновлена", user.PhoneNumber);
+                            SendTextMessageAsync
+                                (e.Update.Message.Chat.Id,
+                                $"Рассылка возобновлена");
+                            return;
+                        }
+                    }
+                }
             }
 
             using (var db = new UserContext(_config.DbPath))
             {
                 
                 var user = db.Users.Where(x => x.ChatId == e.Update.Message.Chat.Id.ToString()).SingleOrDefault();
-                var userStr = $"{user.PhoneNumber}";
+                string userStr;
+                var auth = "";
                 if (user == null)
+                {
+                    auth = "Для подписки отправь команду /start";
                     userStr = $"Username : {e.Update.Message.From.Username} , First Name = {e.Update.Message.From.FirstName}, Last NAme = {e.Update.Message.From.LastName} ";
-
-
-
+                }
+                else
+                {
+                    auth = "Для отписки отправь команду /bye";
+                    userStr = $"{user.PhoneNumber}";
+                }
+                
                 _logger.LogIncoming($"Пришло сообщение {e.Update.Message.Text }", userStr);
 
                 SendTextMessageAsync
                 (e.Update.Message.Chat.Id,
-                _config.AutoresponseText);
+                $"{_config.AutoresponseText}\n{auth}");
             }
-
         }
     }
 }

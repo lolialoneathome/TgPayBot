@@ -30,6 +30,11 @@ namespace Sender.Services
         public async Task<bool> Send(CancellationToken cancellation)
         {
             try {
+                if (!CheckEnable()) {
+                    _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
+                    return false;
+                } 
+
                 var service = _sheetServiceProvider.GetService(); //Need get every times on start for correct token (Но это не точно ¯\_(ツ)_/¯)
                 var rows = GetData(_config, service);
                 if (rows != null) {
@@ -56,6 +61,17 @@ namespace Sender.Services
                 _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
             return await Task.FromResult(false);
+        }
+
+        private bool CheckEnable()
+        {
+            using (var states = new StateContext(_config.DbPath))
+            {
+                if (states.States.First().IsEnabled == -1)
+                    return false;
+
+                return true;
+            }
         }
 
         private bool UpdateTableData(SheetsService service, string sheetId, string list, string cellForUpdate)
