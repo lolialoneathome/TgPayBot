@@ -5,10 +5,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="quartz.db" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="wwwroot\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.32.2.1135" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.3" />
     <PackageReference Include="Quartz" Version="3.0.2" />
     <PackageReference Include="Quartz.Serialization.Json" Version="3.0.2" />
@@ -16,6 +21,10 @@
 
   <ItemGroup>
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Configuration\Configuration.csproj" />
   </ItemGroup>
 
 </Project>

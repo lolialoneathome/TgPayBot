@@ -14,7 +14,13 @@ namespace Sender.Quartz
     public class QuartzStartup
     {
         private IScheduler _scheduler; // after Start, and until shutdown completes, references the scheduler object
+        private IServiceProvider _serviceProvider;
 
+
+        public QuartzStartup(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
         // starts the scheduler, defines the jobs and the triggers
         public void Start()
         {
@@ -43,28 +49,41 @@ namespace Sender.Quartz
                 ["quartz.serializer.type"] = "json",
 
                 // the following setup of job store is just for example and it didn't change from v2
-                ["quartz.jobStore.type"] = "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz",
-                ["quartz.jobStore.useProperties"] = "false",
-                ["quartz.jobStore.dataSource"] = "default",
-                ["quartz.jobStore.tablePrefix"] = "QRTZ_",
-                ["quartz.jobStore.driverDelegateType"] = "Quartz.Impl.AdoJobStore.SqlServerDelegate, Quartz",
-                ["quartz.dataSource.default.provider"] = "sqlite-provider",
-                ["quartz.dataSource.default.connectionString"] = @"DataSource=quartz.db"
+                //["quartz.jobStore.type"] = "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz",
+                //["quartz.jobStore.useProperties"] = "true",
+                //["quartz.jobStore.dataSource"] = "default",
+                //["quartz.jobStore.tablePrefix"] = "QRTZ_",
+                //["quartz.jobStore.driverDelegateType"] = "Quartz.Impl.AdoJobStore.SqlServerDelegate, Quartz",
+                //["quartz.dataSource.default.provider"] = "sqlite-provider",
+                //["quartz.dataSource.default.connectionString"] = @"DataSource=quartz.db",
+                ["quartz.threadPool.threadCount"] = "5"
             };
 
             var schedulerFactory = new StdSchedulerFactory(properties);
             _scheduler = schedulerFactory.GetScheduler().Result;
-            _scheduler.Start().Wait();
 
+            _scheduler.DeleteJob(new JobKey("SendPaymentsInfo", "group1"));
+
+            _scheduler.Start().Wait();
+            _scheduler.JobFactory = new JobFactory(_serviceProvider);
             var paymentsInfoJob = JobBuilder.Create<SendPaymentsInfoJob>()
-                .WithIdentity("SendPaymentsInfo")
+                .WithIdentity("SendPaymentsInfo", "group1")
                 .Build();
             var paymentsInfoTrigger = TriggerBuilder.Create()
-                .WithIdentity("UserEmailsCron")
+                .WithIdentity("SendPaymentsTrigger", "group1")
+                .WithSimpleSchedule(x => x
+                    //.WithIntervalInMinutes(1)
+                    .WithIntervalInSeconds(1)
+                    .WithRepeatCount(100))
+                    //.RepeatForever())
                 .StartNow()
-                .WithCronSchedule("0 0 / 5 * ** ?")
+                //.WithCronSchedule("0 0 / 5 * ** ?")
                 .Build();
+
+            
             _scheduler.ScheduleJob(paymentsInfoJob, paymentsInfoTrigger).Wait();
+            
+            //_scheduler.TriggerJob(new JobKey("SendPaymentsInfo", "group1")).Wait();
         }
 
         // initiates shutdown of the scheduler, and waits until jobs exit gracefully (within allotted timeout)

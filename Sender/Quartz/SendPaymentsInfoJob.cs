@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Quartz;
 using Sender.Services;
 
@@ -7,14 +8,15 @@ namespace Sender.Quartz
     internal class SendPaymentsInfoJob : IJob
     {
         protected readonly ISenderService _senderService;
+
         public SendPaymentsInfoJob(ISenderService senderService)
         {
             _senderService = senderService;
         }
 
-        public Task Execute(IJobExecutionContext context)
+        public async Task Execute(IJobExecutionContext context)
         {
-            return _senderService.Send();
+            return _senderService.Send(context.CancellationToken);
         }
     }
 }
