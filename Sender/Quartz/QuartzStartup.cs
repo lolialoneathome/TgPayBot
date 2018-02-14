@@ -1,13 +1,11 @@
 ﻿using Microsoft.Data.Sqlite;
+using PayBot.Configuration;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore.Common;
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Sender.Quartz
 {
@@ -69,20 +67,18 @@ namespace Sender.Quartz
             var paymentsInfoJob = JobBuilder.Create<SendPaymentsInfoJob>()
                 .WithIdentity("SendPaymentsInfo", "group1")
                 .Build();
+
+            var timeout = ((Config)(_serviceProvider.GetService(typeof(Config)))).SenderTimeout;
             var paymentsInfoTrigger = TriggerBuilder.Create()
                 .WithIdentity("SendPaymentsTrigger", "group1")
                 .WithSimpleSchedule(x => x
-                    .WithIntervalInMinutes(10)
-                    //.WithIntervalInSeconds(5)
-                    .WithRepeatCount(1))
-                    //.RepeatForever())
+                    .WithIntervalInMinutes(timeout)
+                    .RepeatForever())
                 .StartNow()
-                //.WithCronSchedule("0 0 / 5 * ** ?")
                 .Build();
 
             
             _scheduler.ScheduleJob(paymentsInfoJob, paymentsInfoTrigger).Wait();
-            //_scheduler.TriggerJob(new JobKey("SendPaymentsInfo", "group1"));
         }
 
         // initiates shutdown of the scheduler, and waits until jobs exit gracefully (within allotted timeout)
