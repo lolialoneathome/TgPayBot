@@ -20,18 +20,23 @@ namespace Sender.Services
 {
     public class SenderService : ISenderService
     {
-        private const string _configPath = "../conf/config.json";
         private const string _clientSecretPath = "../conf/client_secret.json";
         private const string _credentials = "../conf/credentials";
+
         private string[] scopes = { SheetsService.Scope.Spreadsheets };
         private const string _applicationName = "Google Sheets API .NET Quickstart";
+        private readonly Config _config;
+
+        public SenderService(Config config) {
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+        }
+
 
         public async Task<bool> Send(CancellationToken cancellation)
         {
             try {
                 var service = CreateService();
-                var config = GetConfig();
-                var rows = GetData(config, service);
+                var rows = GetData(_config, service);
                 if (rows != null) {
                     foreach (var row in rows.OrderByDescending(x => x.LastModifiedDate))
                     {
@@ -40,7 +45,7 @@ namespace Sender.Services
                             var text = row.MessageText;
                             var tgUser = row.TgUser;
 
-                            var sendMessageResult = await SendMessageAsync(text, tgUser, config.db_path, config.bot_api_key);
+                            var sendMessageResult = await SendMessageAsync(text, tgUser, _config.DbPath, _config.BotApiKey);
                             if (sendMessageResult)
                             {
                                 var updateResult = UpdateTableData(service, row.SheetId, row.List, row.CellForUpdate);
@@ -98,7 +103,7 @@ namespace Sender.Services
         private IEnumerable<ValueRow> GetData(Config config, SheetsService service)
         {
             var result = new List<ValueRow>();
-            foreach (var spreadsheet in config.spreadsheets)
+            foreach (var spreadsheet in config.Spreadsheets)
             {
                 var spreadsheetId = spreadsheet.Id;
                 foreach (var list in spreadsheet.Lists)
@@ -107,11 +112,11 @@ namespace Sender.Services
                     var rowNum = 2;
                     while(!allEmpty)
                     {
-                        var dateRange = $"{list.listname}!{list.date}{rowNum}";
-                        var statusRange = $"{list.listname}!{list.status}{rowNum}";
-                        var isSendedRange = $"{list.listname}!{list.isSendedColumn}{rowNum}";
-                        var textRange = $"{list.listname}!{list.message_text}{rowNum}";
-                        var tgRange = $"{list.listname}!{list.tg_user}{rowNum}";
+                        var dateRange = $"{list.ListName}!{list.Date}{rowNum}";
+                        var statusRange = $"{list.ListName}!{list.Status}{rowNum}";
+                        var isSendedRange = $"{list.ListName}!{list.IsSendedColumn}{rowNum}";
+                        var textRange = $"{list.ListName}!{list.MessageText}{rowNum}";
+                        var tgRange = $"{list.ListName}!{list.TgUser}{rowNum}";
 
                         SpreadsheetsResource.ValuesResource.BatchGetRequest request =
                             service.Spreadsheets.Values.BatchGet(spreadsheetId);
@@ -140,8 +145,8 @@ namespace Sender.Services
                             MessageText = text,
                             TgUser = tg,
                             SheetId = spreadsheetId,
-                            List = list.listname,
-                            CellForUpdate = $"{list.isSendedColumn}{rowNum}"
+                            List = list.ListName,
+                            CellForUpdate = $"{list.IsSendedColumn}{rowNum}"
                         };
                         result.Add(row);
                         rowNum++;
@@ -150,13 +155,6 @@ namespace Sender.Services
             }
 
             return result;
-        }
-
-
-        private Config GetConfig()
-        {
-            var json = System.IO.File.ReadAllText(_configPath);
-            return JsonConvert.DeserializeObject<Config>(json);
         }
 
         private SheetsService CreateService()

@@ -2,37 +2,38 @@
 {
     public class Config
     {
-        public string bot_api_key { get; set; }
-        public string db_path { get; set; }
-        public Spreadsheet[] spreadsheets { get; set; }
-        public string[] admin_users { get; set; }
-        public SpreadsheetLog spreadsheet_log { get; set; }
-        public int sender_timeout { get; set; }
-        public string hello_message { get; set; }
-        public string autoresponse { get; set; }
+        public string BotApiKey { get; set; }
+        public string DbPath { get; set; }
+        public Spreadsheet[] Spreadsheets { get; set; }
+        public string[] Admins { get; set; }
+        public SpreadsheetLog SpreadsheetLog { get; set; }
+        public int SenderTimeout { get; set; }
+        public string HelloMessage { get; set; }
+        public string AutoresponseText { get; set; }
     }
 
     public class SpreadsheetLog
     {
-        public string id { get; set; }
-        public string action_list { get; set; }
-        public string error_list { get; set; }
-        public string auth_list { get; set; }
+        public string Id { get; set; }
+        public string Sended { get; set; }
+        public string Incoming { get; set; }
+        public string Errors { get; set; }
+        public string Auths { get; set; }
     }
 
     public class Spreadsheet
     {
-        public string id { get; set; }
-        public List[] lists { get; set; }
+        public string Id { get; set; }
+        public List[] Lists { get; set; }
     }
 
     public class List
     {
-        public string listname { get; set; }
-        public string date { get; set; }
-        public string status { get; set; }
-        public string isSendedColumn { get; set; }
-        public string message_text { get; set; }
-        public string tg_user { get; set; }
+        public string ListName { get; set; }
+        public string Date { get; set; }
+        public string Status { get; set; }
+        public string IsSendedColumn { get; set; }
+        public string MessageText { get; set; }
+        public string TgUser { get; set; }
     }
 }

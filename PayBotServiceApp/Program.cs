@@ -6,6 +6,7 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
 using Newtonsoft.Json;
+using PayBot.Configuration;
 using Sqllite;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,6 @@ namespace PayBotServiceApp
     class Program
     {
         static string _botApiKey;
-        static string _userDataFile;
 
         static string[] Scopes = { SheetsService.Scope.Spreadsheets };
         static string ApplicationName = "Google Sheets API .NET Quickstart";
@@ -31,18 +31,17 @@ namespace PayBotServiceApp
                 var service = CreateService();
 
                 var json = System.IO.File.ReadAllText("config.json");
-                Configuration configuration = JsonConvert.DeserializeObject<Configuration>(json);
-                _botApiKey = configuration.bot_api_key;
-                _userDataFile = configuration.userdatafile;
+                Config configuration = JsonConvert.DeserializeObject<Config>(json);
+                _botApiKey = configuration.BotApiKey;
 
                 var messageCount = 0;
 
-                foreach (var spreadsheet in configuration.spreadsheets)
+                foreach (var spreadsheet in configuration.Spreadsheets)
                 {
                     var spreadsheetId = spreadsheet.Id;
                     foreach (var list in spreadsheet.Lists)
                     {
-                        var range = $"{list.listname}!{list.start_column}:{list.end_column}";
+                        var range = $"{list.ListName}!{list.start_column}:{list.end_column}";
                         SpreadsheetsResource.ValuesResource.GetRequest request =
                             service.Spreadsheets.Values.Get(spreadsheetId, range);
 
@@ -61,11 +60,11 @@ namespace PayBotServiceApp
                                 var text = row[2].ToString();
                                 var tgUser = row[3].ToString();
 
-                                var sendMessageResult = SendMessageAsync(text, tgUser, configuration.db_path).Result;
+                                var sendMessageResult = SendMessageAsync(text, tgUser, configuration.DbPath).Result;
                                 if (sendMessageResult)
                                 {
                                     messageCount++;
-                                    UpdateTableData(service, spreadsheetId, rowNum, list.isSendedColumn, list.listname);
+                                    UpdateTableData(service, spreadsheetId, rowNum, list.IsSendedColumn, list.ListName);
                                 }
 
                             }
