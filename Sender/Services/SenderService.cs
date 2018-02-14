@@ -101,7 +101,7 @@ namespace Sender.Services
                 ChatId destId = null;
                 using (var db = new UserContext(dbpath))
                 {
-                    var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower());
+                    var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower() || x.PhoneNumber == tgUser);
                     if (user == null)
                     {
                         Console.WriteLine("Не могу отправить сообщение пользователю {0}, т.к. он не добавил бота в телеграмме", tgUser);
