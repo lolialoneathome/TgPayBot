@@ -26,6 +26,7 @@ namespace Sender
         {
             services.AddMvc();
 
+            services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<ISenderService, SenderService>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();

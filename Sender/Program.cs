@@ -21,6 +21,7 @@ namespace Sender
             WebHost.CreateDefaultBuilder(args)
                 .UseKestrel()
                 .UseStartup<Startup>()
+                .UseUrls("http://*:5001")
                 .Build();
     }
 }

@@ -6,6 +6,7 @@ using Sqllite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
@@ -19,11 +20,13 @@ namespace Sender.Services
         private readonly Config _config;
         private readonly ISheetsServiceProvider _sheetServiceProvider;
         protected readonly IBotLogger _logger;
+        protected readonly IPhoneHelper _phoneHelper;
 
-        public SenderService(Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger) {
+        public SenderService(Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger, IPhoneHelper phoneHelper) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
         }
 
 
@@ -38,12 +41,24 @@ namespace Sender.Services
                 var service = _sheetServiceProvider.GetService(); //Need get every times on start for correct token (Но это не точно ¯\_(ツ)_/¯)
                 var rows = GetData(_config, service);
                 if (rows != null) {
-                    foreach (var row in rows.OrderByDescending(x => x.LastModifiedDate))
+                    foreach (var row in rows.OrderBy(x => x.LastModifiedDate))
                     {
                         if (row.Status != null && row.Status.ToLower() == "надо отправить" 
                             && (row.MessageSended == null || row.MessageSended.ToLower() != "да"))
                         {
                             var text = row.MessageText;
+                            if (row.TgUser == null)
+                            {
+                                var rownum = Regex.Match(row.CellForUpdate, @"\d+").Value;
+                                _logger.LogError
+                                    ($"У пользователя в таблице {row.SheetId } на листе {row.List} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
+                                continue;
+                            }
+
+                            if (_phoneHelper.IsPhone(row.TgUser))
+                            {
+                                row.TgUser = _phoneHelper.Format(row.TgUser);
+                            }
                             var tgUser = row.TgUser;
 
                             var sendMessageResult = await SendMessageAsync(text, tgUser, _config.DbPath, _config.BotApiKey);
@@ -101,10 +116,12 @@ namespace Sender.Services
                 ChatId destId = null;
                 using (var db = new UserContext(dbpath))
                 {
-                    var user = db.Users.SingleOrDefault(x => x.Username.ToLower() == tgUser.ToLower() || x.PhoneNumber == tgUser);
+                    var user = db.Users.SingleOrDefault(
+                        x => x.Username != null && x.Username.ToLower() == tgUser.ToLower() 
+                        || x.PhoneNumber == string.Join("", tgUser.Where(c => Char.IsDigit(c)).ToArray()));
                     if (user == null)
                     {
-                        Console.WriteLine("Не могу отправить сообщение пользователю {0}, т.к. он не добавил бота в телеграмме", tgUser);
+                        _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
                         return false;
                     }
                     destId = new ChatId(user.ChatId);
@@ -112,7 +129,7 @@ namespace Sender.Services
                 var bot = new Telegram.Bot.TelegramBotClient(botKey);
                 await bot.SendTextMessageAsync(destId, text);
 
-                _logger.LogSended($"Отправлено ообщение с текстом {text}", tgUser);
+                _logger.LogSended($"{text}", tgUser);
 
                 return true;
             }
