@@ -27,6 +27,7 @@ namespace TelegramListener
         {
             services.AddMvc();
 
+            services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();
 
