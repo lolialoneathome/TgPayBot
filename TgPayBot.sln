@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PayBotServiceApp", "PayBotS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sqllite", "Sqllite\Sqllite.csproj", "{B5841804-EACD-45F6-882B-D47170ED80A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Configuration", "Configuration\Configuration.csproj", "{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sender", "Sender\Sender.csproj", "{719A5E90-5DCD-4CAB-B196-BB6EF6493650}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{B5841804-EACD-45F6-882B-D47170ED80A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B5841804-EACD-45F6-882B-D47170ED80A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B5841804-EACD-45F6-882B-D47170ED80A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
