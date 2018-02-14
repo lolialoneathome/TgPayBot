@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore;
 namespace Sqllite
 {
     public class UserContext : DbContext
@@ -7,6 +8,10 @@ namespace Sqllite
         public UserContext(string dbPath)
         {
             _dbPath = dbPath ?? throw new System.Exception("Empty db path");
+        }
+
+        public UserContext(DbContextOptions options) : base(options)
+        {
         }
 
         public DbSet<User> Users { get; set; }
