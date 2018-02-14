@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2003
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventApp", "EventApp\EventApp.csproj", "{27151718-758F-4816-89FC-8FA1EA415F25}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PayBotServiceApp", "PayBotServiceApp\PayBotServiceApp.csproj", "{9281D516-8B0A-4FE3-A448-9AC179D15B9A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sqllite", "Sqllite\Sqllite.csproj", "{B5841804-EACD-45F6-882B-D47170ED80A9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{27151718-758F-4816-89FC-8FA1EA415F25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27151718-758F-4816-89FC-8FA1EA415F25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27151718-758F-4816-89FC-8FA1EA415F25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27151718-758F-4816-89FC-8FA1EA415F25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9281D516-8B0A-4FE3-A448-9AC179D15B9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9281D516-8B0A-4FE3-A448-9AC179D15B9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9281D516-8B0A-4FE3-A448-9AC179D15B9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9281D516-8B0A-4FE3-A448-9AC179D15B9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5841804-EACD-45F6-882B-D47170ED80A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5841804-EACD-45F6-882B-D47170ED80A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5841804-EACD-45F6-882B-D47170ED80A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5841804-EACD-45F6-882B-D47170ED80A9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BBA7D5F3-1A49-40E2-8DCE-06B8F7D7733B}
+	EndGlobalSection
+EndGlobal
