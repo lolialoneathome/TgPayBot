@@ -102,8 +102,14 @@ namespace TelegramListener.Core
                 using (var db = new UserContext(_config.DbPath))
                 {
                     var user = db.Users.Where(x => x.ChatId == e.Update.Message.Chat.Id.ToString()).SingleOrDefault();
-                    if (user == null) 
+                    if (user == null) {
+                        SendTextMessageAsync
+                        (e.Update.Message.Chat.Id,
+                        "Подписка не активна.",
+                        replyMarkup: ReplyMarkupRemoveButton);
                         return;
+                    }
+                        
 
                     db.Users.RemoveRange(user);
                     var count = db.SaveChanges();

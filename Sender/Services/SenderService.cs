@@ -165,9 +165,10 @@ namespace Sender.Services
 
                             BatchGetValuesResponse response = request.Execute();
                             var dict = new Dictionary<int, ValueRow>();
+                            DateTime dt;
                             //Get date
-                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null
-                                ? Convert.ToDateTime(response.ValueRanges[0].Values?[0]?[0])
+                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null && DateTime.TryParse(response.ValueRanges[0].Values?[0]?[0].ToString(), out dt)
+                                ? dt
                                 : (DateTime?)null;
                             var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
                             var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
