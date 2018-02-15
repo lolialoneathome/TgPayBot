@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using Sender.Quartz;
 using Sender.Services;
@@ -25,6 +27,10 @@ namespace Sender
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+
+            services.AddSingleton<ILoggerFactory, LoggerFactory>();
+            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+            services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
 
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<ISenderService, SenderService>();
@@ -49,6 +55,11 @@ namespace Sender
                 app.UseDeveloperExceptionPage();
             }
             app.UseMvc();
+
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            //configure NLog
+            loggerFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
+            loggerFactory.ConfigureNLog("nlog.config");
 
             var quartz = new QuartzStartup(serviceProvider);
             lifetime.ApplicationStarted.Register(quartz.Start);
