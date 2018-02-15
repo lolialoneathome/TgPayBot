@@ -10,13 +10,16 @@
         public int SenderTimeout { get; set; }
         public string HelloMessage { get; set; }
         public string AutoresponseText { get; set; }
+        public string AlreadySubscribedMessage { get; set; }
+        public string UserSubscribed { get; set; }
+        public string UserUnsubscribed { get; set; }
+        public string UnsupportedMessageType { get; set; }
     }
 
     public class SpreadsheetLog
     {
         public string Id { get; set; }
-        public string Sended { get; set; }
-        public string Incoming { get; set; }
+        public string Messages { get; set; }
         public string Errors { get; set; }
         public string Auths { get; set; }
     }
