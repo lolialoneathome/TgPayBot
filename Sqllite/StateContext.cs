@@ -14,7 +14,7 @@ namespace Sqllite
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite($"Data Source=../Db/users.db");
+            optionsBuilder.UseSqlite($"Data Source={_dbPath}");
         }
 
         public DbSet<State> States { get; set; }
