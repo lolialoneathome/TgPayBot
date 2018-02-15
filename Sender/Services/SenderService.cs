@@ -1,10 +1,12 @@
 ﻿using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
+using Microsoft.Extensions.Logging;
 using PayBot.Configuration;
 using Sender.Entities;
 using Sqllite;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -21,11 +23,13 @@ namespace Sender.Services
         private readonly ISheetsServiceProvider _sheetServiceProvider;
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
-
-        public SenderService(Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger, IPhoneHelper phoneHelper) {
+        private readonly ILogger<SenderService> _toFileLogger;
+        public SenderService
+            (Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<SenderService> toFileLogger) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
         }
 
@@ -36,10 +40,12 @@ namespace Sender.Services
                 if (!CheckEnable()) {
                     _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
                     return false;
-                } 
-
+                }
+                _logger.LogSended($"Начинаю отправку сообщений...", null);
                 var service = _sheetServiceProvider.GetService(); //Need get every times on start for correct token (Но это не точно ¯\_(ツ)_/¯)
+
                 var rows = GetData(_config, service);
+                var sendedMesageCount = 0;
                 if (rows != null) {
                     foreach (var row in rows.OrderBy(x => x.LastModifiedDate))
                     {
@@ -60,15 +66,16 @@ namespace Sender.Services
                                 row.TgUser = _phoneHelper.Format(row.TgUser);
                             }
                             var tgUser = row.TgUser;
-
                             var sendMessageResult = await SendMessageAsync(text, tgUser, _config.DbPath, _config.BotApiKey);
                             if (sendMessageResult)
-                            {
+                            { 
                                 var updateResult = UpdateTableData(service, row.SheetId, row.List, row.CellForUpdate);
+                                sendedMesageCount++;
                             }
                         }
                     }
                 }
+                _logger.LogSended($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
                 return await Task.FromResult(true);
             }
             catch (Exception err)
@@ -117,20 +124,20 @@ namespace Sender.Services
                 using (var db = new UserContext(dbpath))
                 {
                     var user = db.Users.SingleOrDefault(
-                        x => x.Username != null && x.Username.ToLower() == tgUser.ToLower() 
-                        || x.PhoneNumber == string.Join("", tgUser.Where(c => Char.IsDigit(c)).ToArray()));
+                        x => x.Username != null && x.Username.ToLower() == tgUser.ToLower()
+                        || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(tgUser));
                     if (user == null)
                     {
+                        _toFileLogger.LogDebug("До ");
                         _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
                         return false;
                     }
                     destId = new ChatId(user.ChatId);
+
+                    var bot = new Telegram.Bot.TelegramBotClient(botKey);
+                    await bot.SendTextMessageAsync(destId, text);
+                    _logger.LogSended($"{text}", _phoneHelper.Format(user.PhoneNumber));
                 }
-                var bot = new Telegram.Bot.TelegramBotClient(botKey);
-                await bot.SendTextMessageAsync(destId, text);
-
-                _logger.LogSended($"{text}", tgUser);
-
                 return true;
             }
             catch(Exception err)
@@ -165,23 +172,33 @@ namespace Sender.Services
 
                             BatchGetValuesResponse response = request.Execute();
                             var dict = new Dictionary<int, ValueRow>();
+
+                            var strDate = response.ValueRanges[0].Values?[0]?[0]; //Костыль для linux
                             DateTime dt;
                             //Get date
-                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null && DateTime.TryParse(response.ValueRanges[0].Values?[0]?[0].ToString(), out dt)
+                            var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH-mm-ss", "yyyy-MM-dd", "yyyy-MM-dd HH-mm-ss" };
+                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null && 
+                                    DateTime.TryParseExact(response.ValueRanges[0].Values?[0]?[0].ToString(), formats,
+                                        new CultureInfo("en-US"),
+                                        DateTimeStyles.None,
+                                        out dt)
                                 ? dt
                                 : (DateTime?)null;
                             var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
                             var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
                             var text = response.ValueRanges[3].Values?[0]?[0]?.ToString();
                             var tg = response.ValueRanges[4].Values?[0]?[0]?.ToString();
-                            if (date == null && status == null && messageSended == null && text == null && tg == null)
+                            
+
+
+                            if (strDate == null && date == null && status == null && messageSended == null && text == null && tg == null)
                             {
                                 allEmpty = true;
                                 continue;
                             };
                             var row = new ValueRow()
                             {
-                                LastModifiedDate = (DateTime)date,
+                                LastModifiedDate = date == null ? DateTime.MinValue : (DateTime)date,
                                 Status = status,
                                 MessageSended = messageSended,
                                 MessageText = text,
@@ -200,7 +217,6 @@ namespace Sender.Services
             {
                 _logger.LogError($"Произошла непредвиденная ошибка во время получения данных! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
-
             return result;
         }
     }
