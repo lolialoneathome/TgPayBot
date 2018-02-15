@@ -81,8 +81,14 @@ namespace TelegramListener.Core
 
                     using (var db = new UserContext(_config.DbPath))
                     {
-                        if (db.Users.Any(x => x.PhoneNumber == e.Update.Message.Contact.PhoneNumber))
+                        if (db.Users.Any(x => x.PhoneNumber == e.Update.Message.Contact.PhoneNumber)) {
+                            SendTextMessageAsync
+                        (e.Update.Message.Chat.Id,
+                        "Контакт сохранен.",
+                        replyMarkup: ReplyMarkupRemoveButton);
                             return;
+                        }
+                            
 
                         db.Users.Add(new User
                         {
