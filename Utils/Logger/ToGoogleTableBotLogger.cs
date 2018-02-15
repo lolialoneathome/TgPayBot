@@ -18,7 +18,7 @@ namespace Utils.Logger
 
         public void LogSended(string action, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Sended, action, user);
+            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.Outgoing);
         }
 
 
@@ -34,11 +34,11 @@ namespace Utils.Logger
 
         public void LogIncoming(string action, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Incoming, action, user);
+            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.Incoming);
         }
 
 
-        private void LogToTable(string listname, string message, string user = null) {
+        private void LogToTable(string listname, string message, string user = null, MessageType? messageType = null) {
             try
             {
                 var service = _sheetServiceProvider.GetService();
@@ -49,8 +49,13 @@ namespace Utils.Logger
                 SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum insertDataOption 
                     = SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum.INSERTROWS;
                 ValueRange valueRange = new ValueRange();
+                var oblist = new List<object>();
+                if (messageType != null)
+                    oblist.Add(
+                        messageType == MessageType.Outgoing ? "Исходящее" : "Входящее"
+                        );
+                oblist.AddRange(new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), message, user});
 
-                var oblist = new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), message, user };
                 valueRange.Values = new List<IList<object>> { oblist };
 
 
