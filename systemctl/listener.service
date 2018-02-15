@@ -1,3 +1,6 @@
+[Unit]
+Description=Net Telegram Listener Service 
+
 [Service]
 WorkingDirectory=/home/lolidragon/tg_bot/listener
 ExecStart=/usr/bin/dotnet TelegramListener.dll
@@ -6,3 +9,6 @@ RestartSec=10  # Restart service after 10 seconds if dotnet service crashes
 SyslogIdentifier=TelegramBotListener
 User=lolidragon
 Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target
