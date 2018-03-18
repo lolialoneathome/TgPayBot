@@ -3,6 +3,7 @@ using Google.Apis.Sheets.v4.Data;
 using PayBot.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Utils.Logger
 {
@@ -37,6 +38,10 @@ namespace Utils.Logger
             LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.Incoming);
         }
 
+        public void LogSystem(string action, string user)
+        {
+            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.System);
+        }
 
         private void LogToTable(string listname, string message, string user = null, MessageType? messageType = null) {
             try
@@ -52,7 +57,9 @@ namespace Utils.Logger
                 var oblist = new List<object>();
                 if (messageType != null)
                     oblist.Add(
-                        messageType == MessageType.Outgoing ? "Исходящее" : "Входящее"
+                        messageType == MessageType.Outgoing ? "Исходящее" :
+                        messageType == MessageType.Incoming ? "Входящее"
+                        : "Системное"
                         );
                 oblist.AddRange(new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), message, user});
 
@@ -67,9 +74,43 @@ namespace Utils.Logger
             }
             catch (Exception err)
             {
-                //Logging ??? AAAAAAAA
+                //Logging ??? AAAAAAAA ????
+
+                Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAA " + err.Message);
             }
         }
 
+        public void LogErrorList(IEnumerable<string> errors)
+        {
+            try
+            {
+                var service = _sheetServiceProvider.GetService();
+
+                var range = $"{_config.SpreadsheetLog.Errors}!A:B";
+                SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum valueInputOption
+                    = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
+                SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum insertDataOption
+                    = SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum.INSERTROWS;
+                ValueRange valueRange = new ValueRange();
+                var oblist = new List<object>();
+
+                //oblist.AddRange(new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), message, user });
+                oblist.AddRange(errors.Select(x => new List<object>() { string.Format(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")), x}));
+                valueRange.Values = new List<IList<object>> { oblist };
+
+
+                SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _config.SpreadsheetLog.Id, range);
+                request.ValueInputOption = valueInputOption;
+                request.InsertDataOption = insertDataOption;
+                request.ResponseDateTimeRenderOption = SpreadsheetsResource.ValuesResource.AppendRequest.ResponseDateTimeRenderOptionEnum.FORMATTEDSTRING;
+                AppendValuesResponse response = request.Execute();
+            }
+            catch (Exception err)
+            {
+                //Logging ??? AAAAAAAA ????
+
+                Console.WriteLine("AAAAAAAAAAAAAAAAAAAAAAAAAAAA " + err.Message);
+            }
+        }
     }
 }

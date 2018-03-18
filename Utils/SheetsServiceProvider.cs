@@ -15,11 +15,16 @@ namespace Utils
     public class SheetsServiceProvider : ISheetsServiceProvider
     {
         protected readonly SheetsService _service;
+        private readonly string _applicationName;
         private const string _clientSecretPath = "../conf/client_secret.json";
         private const string _credentials = "../conf/credentials";
-
         private string[] scopes = { SheetsService.Scope.Spreadsheets };
-        private const string _applicationName = "Google Sheets API .NET Quickstart";
+        
+
+        public SheetsServiceProvider(Config config) {
+            _applicationName = config.GoogleAppName;
+        }
+
         public SheetsService GetService()
         {
             if (_service != null)
@@ -39,7 +44,6 @@ namespace Utils
             var token = (new FileDataStore(_credentials, true)).GetAsync<TokenResponse>("user").Result;
 
             UserCredential credential = new UserCredential(new GoogleAuthorizationCodeFlow(googleFlowInitializer), "user", token);
-
 
             return new SheetsService(new BaseClientService.Initializer()
             {

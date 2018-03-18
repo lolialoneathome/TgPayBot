@@ -24,13 +24,16 @@ namespace Sender.Services
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
         private readonly ILogger<SenderService> _toFileLogger;
+        protected readonly ICellService _cellService;
         public SenderService
-            (Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<SenderService> toFileLogger) {
+            (Config config, ISheetsServiceProvider sheetServiceProvider, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<SenderService> toFileLogger,
+            ICellService cellService) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
+            _cellService = cellService ?? throw new ArgumentNullException(nameof(cellService));
         }
 
 
@@ -41,12 +44,14 @@ namespace Sender.Services
                     _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
                     return false;
                 }
-                _logger.LogSended($"Начинаю отправку сообщений...", null);
+                _logger.LogSystem($"Начинаю отправку сообщений...", null);
                 var service = _sheetServiceProvider.GetService(); //Need get every times on start for correct token (Но это не точно ¯\_(ツ)_/¯)
 
-                var rows = GetData(_config, service);
+                var rows = await GetData(_config, service);
                 var sendedMesageCount = 0;
                 if (rows != null) {
+                    var rowsForUpdate = new Dictionary<string, List<ValueRow>>();
+                    var errorList = new List<string>();
                     foreach (var row in rows.OrderBy(x => x.LastModifiedDate))
                     {
                         if (row.Status != null && row.Status.ToLower() == "надо отправить" 
@@ -56,7 +61,7 @@ namespace Sender.Services
                             if (row.TgUser == null)
                             {
                                 var rownum = Regex.Match(row.CellForUpdate, @"\d+").Value;
-                                _logger.LogError
+                                errorList.Add
                                     ($"У пользователя в таблице {row.SheetId } на листе {row.List} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
                                 continue;
                             }
@@ -68,14 +73,24 @@ namespace Sender.Services
                             var tgUser = row.TgUser;
                             var sendMessageResult = await SendMessageAsync(text, tgUser, _config.DbPath, _config.BotApiKey);
                             if (sendMessageResult)
-                            { 
-                                var updateResult = UpdateTableData(service, row.SheetId, row.List, row.CellForUpdate);
+                            {
+                                if (!rowsForUpdate.ContainsKey(row.SheetId))
+                                    rowsForUpdate[row.SheetId] = new List<ValueRow>();
+                                rowsForUpdate[row.SheetId].Add(row);
                                 sendedMesageCount++;
                             }
                         }
                     }
+                    _logger.LogErrorList(errorList);
+                    if (rowsForUpdate.Count > 0)
+                    {
+                        foreach (var item in rowsForUpdate) {
+                            var updateResult = UpdateTableData(service, item.Key, item.Value);
+                        }
+                        
+                    }
                 }
-                _logger.LogSended($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
+                _logger.LogSystem($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
                 return await Task.FromResult(true);
             }
             catch (Exception err)
@@ -96,23 +111,33 @@ namespace Sender.Services
             }
         }
 
-        private bool UpdateTableData(SheetsService service, string sheetId, string list, string cellForUpdate)
+        private bool UpdateTableData(SheetsService service, string sheetId, List<ValueRow> rowsForUpdate)
         {
             try {
-                var range = $"{list}!{cellForUpdate}";
-                ValueRange valueRange = new ValueRange();
+                var range = new List<string>();
+                List<ValueRange> data = new List<ValueRange>();
+                foreach (var row in rowsForUpdate) {
+                    range.Add($"{row.List}!{row.CellForUpdate}");
+                    ValueRange valueRange = new ValueRange();
+                    valueRange.Range = $"{row.List}!{row.CellForUpdate}";
+                    var oblist = new List<object>() { "да" };
+                    valueRange.Values = new List<IList<object>> { oblist };
 
-                var oblist = new List<object>() { "да" };
-                valueRange.Values = new List<IList<object>> { oblist };
+                    data.Add(valueRange);
+                }
+                BatchUpdateValuesRequest requestBody = new BatchUpdateValuesRequest();
+                requestBody.ValueInputOption = "RAW";
+                requestBody.Data = data;
 
-                SpreadsheetsResource.ValuesResource.UpdateRequest update = service.Spreadsheets.Values.Update(valueRange, sheetId, range);
-                update.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
-                UpdateValuesResponse result = update.Execute();
+                SpreadsheetsResource.ValuesResource.BatchUpdateRequest request = service.Spreadsheets.Values.BatchUpdate(requestBody, sheetId);
+
+                request.Execute();
+
                 return true;
             }
             catch (Exception err)
             {
-                _logger.LogError($"Произошла непредвиденная ошибка во время обновления данных в таблице на листе {list} в ячейке {cellForUpdate}! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
+                _logger.LogError($"Произошла непредвиденная ошибка во время обновления данных в таблице {sheetId}! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
             return false;
         }
@@ -147,7 +172,7 @@ namespace Sender.Services
             return false;
         }
 
-        private IEnumerable<ValueRow> GetData(Config config, SheetsService service)
+        private async Task<IEnumerable<ValueRow>> GetData(Config config, SheetsService service)
         {
             var result = new List<ValueRow>();
             try {
@@ -156,47 +181,43 @@ namespace Sender.Services
                     var spreadsheetId = spreadsheet.Id;
                     foreach (var list in spreadsheet.Lists)
                     {
-                        bool allEmpty = false;
-                        var rowNum = 2;
-                        while (!allEmpty)
+
+                        var allColumns = new string[] { list.Date, list.Status, list.IsSendedColumn, list.MessageText, list.TgUser };
+                        var range = _cellService.GetFullRange(allColumns);
+                        var dateIndex = _cellService.GetCellIndex(range, list.Date);
+                        var statusIndex = _cellService.GetCellIndex(range, list.Status);
+                        var sendedIndex = _cellService.GetCellIndex(range, list.IsSendedColumn);
+                        var textIndex = _cellService.GetCellIndex(range, list.MessageText);
+                        var tgUserIndex = _cellService.GetCellIndex(range, list.TgUser);
+
+                        SpreadsheetsResource.ValuesResource.GetRequest request = service.Spreadsheets.Values.Get(spreadsheetId, $"{list.ListName}!{range}");
+                        request.MajorDimension = SpreadsheetsResource.ValuesResource.GetRequest.MajorDimensionEnum.ROWS;
+                        request.DateTimeRenderOption = SpreadsheetsResource.ValuesResource.GetRequest.DateTimeRenderOptionEnum.FORMATTEDSTRING;
+                        ValueRange response = request.Execute();
+
+                        var rowNum = 0;
+                        foreach (var row in response.Values)
                         {
-                            var dateRange = $"{list.ListName}!{list.Date}{rowNum}";
-                            var statusRange = $"{list.ListName}!{list.Status}{rowNum}";
-                            var isSendedRange = $"{list.ListName}!{list.IsSendedColumn}{rowNum}";
-                            var textRange = $"{list.ListName}!{list.MessageText}{rowNum}";
-                            var tgRange = $"{list.ListName}!{list.TgUser}{rowNum}";
+                            rowNum++;
+                            if (rowNum == 1) continue;
+                            var strDate = (dateIndex < row.Count()) ? row[dateIndex] : null;
+                            var status = (statusIndex < row.Count()) ? row[statusIndex]?.ToString() : null;
+                            var messageSended = (sendedIndex < row.Count()) ? row[sendedIndex]?.ToString() : null;
+                            var text = (textIndex < row.Count()) ?  row[textIndex]?.ToString() : null;
+                            var tg = (tgUserIndex < row.Count()) ?  row[tgUserIndex]?.ToString() : null;
 
-                            SpreadsheetsResource.ValuesResource.BatchGetRequest request =
-                                service.Spreadsheets.Values.BatchGet(spreadsheetId);
-                            request.Ranges = new string[] { dateRange, statusRange, isSendedRange, textRange, tgRange };
-
-                            BatchGetValuesResponse response = request.Execute();
-                            var dict = new Dictionary<int, ValueRow>();
-
-                            var strDate = response.ValueRanges[0].Values?[0]?[0]; //Костыль для linux
                             DateTime dt;
                             //Get date
-                            var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH-mm-ss", "yyyy-MM-dd", "yyyy-MM-dd HH-mm-ss" };
-                            DateTime? date = response.ValueRanges[0].Values?[0]?[0] != null && 
-                                    DateTime.TryParseExact(response.ValueRanges[0].Values?[0]?[0].ToString(), formats,
-                                        new CultureInfo("en-US"),
+                            var formats = new[] { "dd/MM/yyyy", "dd/MM/yyyy HH:mm:ss", "yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss" };
+                            DateTime? date = strDate != null &&
+                                    DateTime.TryParseExact(strDate.ToString(), formats,
+                                        System.Globalization.DateTimeFormatInfo.InvariantInfo,
                                         DateTimeStyles.None,
                                         out dt)
                                 ? dt
                                 : (DateTime?)null;
-                            var status = response.ValueRanges[1].Values?[0]?[0]?.ToString();
-                            var messageSended = response.ValueRanges[2].Values?[0]?[0]?.ToString();
-                            var text = response.ValueRanges[3].Values?[0]?[0]?.ToString();
-                            var tg = response.ValueRanges[4].Values?[0]?[0]?.ToString();
-                            
 
-
-                            if (strDate == null && date == null && status == null && messageSended == null && text == null && tg == null)
-                            {
-                                allEmpty = true;
-                                continue;
-                            };
-                            var row = new ValueRow()
+                            var item = new ValueRow()
                             {
                                 LastModifiedDate = date == null ? DateTime.MinValue : (DateTime)date,
                                 Status = status,
@@ -207,8 +228,12 @@ namespace Sender.Services
                                 List = list.ListName,
                                 CellForUpdate = $"{list.IsSendedColumn}{rowNum}"
                             };
-                            result.Add(row);
-                            rowNum++;
+
+                            // If all values empty, we think its end
+                            if (strDate != null && date == null && string.IsNullOrEmpty(status)
+                                && string.IsNullOrEmpty(messageSended) && string.IsNullOrEmpty(text) && string.IsNullOrEmpty(tg))
+                                break;
+                            result.Add(item);
                         }
                     }
                 }

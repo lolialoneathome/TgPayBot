@@ -3,6 +3,7 @@
     public enum MessageType
     {
         Incoming,
-        Outgoing
+        Outgoing,
+        System
     }
 }

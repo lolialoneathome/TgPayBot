@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramListener", "Telegra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils\Utils.csproj", "{3065DE30-1D4A-434F-BECF-8CE27FDA835E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CredsGenerator", "CredsGenerator\CredsGenerator.csproj", "{5E85705B-902C-403E-A0AD-6321D219890F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E85705B-902C-403E-A0AD-6321D219890F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E85705B-902C-403E-A0AD-6321D219890F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E85705B-902C-403E-A0AD-6321D219890F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E85705B-902C-403E-A0AD-6321D219890F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

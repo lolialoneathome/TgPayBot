@@ -36,6 +36,7 @@ namespace Sender
             services.AddScoped<ISenderService, SenderService>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();
+            services.AddScoped<ICellService, CellService>();
 
             services.AddScoped<SendPaymentsInfoJob>();
             services.AddSingleton(p =>
