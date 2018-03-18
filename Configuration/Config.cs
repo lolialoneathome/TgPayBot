@@ -4,6 +4,7 @@
     {
         public string BotApiKey { get; set; }
         public string DbPath { get; set; }
+        public string GoogleAppName { get; set; }
         public Spreadsheet[] Spreadsheets { get; set; }
         public string[] Admins { get; set; }
         public SpreadsheetLog SpreadsheetLog { get; set; }
