@@ -15,6 +15,7 @@
         public string UserSubscribed { get; set; }
         public string UserUnsubscribed { get; set; }
         public string UnsupportedMessageType { get; set; }
+        public Twillo Twillo { get; set; }
     }
 
     public class SpreadsheetLog
@@ -39,5 +40,11 @@
         public string IsSendedColumn { get; set; }
         public string MessageText { get; set; }
         public string TgUser { get; set; }
+    }
+
+    public class Twillo {
+        public string Sid { get; set; }
+        public string Token { get; set; }
+        public string PhoneNumber { get; set; }
     }
 }

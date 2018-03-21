@@ -9,6 +9,7 @@ using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using System;
 using TelegramListener.Core;
+using TelegramListener.Services;
 using Utils;
 using Utils.Logger;
 
@@ -38,8 +39,8 @@ namespace TelegramListener
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();
 
             services.AddScoped<EventsTelegramBotClient>();
+            services.AddScoped<IPhoneNumberVerifier, TwilloPhoneNumberVerifier>();
 
-            
             services.AddSingleton(p =>
             {
                 var json = System.IO.File.ReadAllText(_configPath);

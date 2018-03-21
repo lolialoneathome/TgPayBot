@@ -3,9 +3,11 @@ using PayBot.Configuration;
 using Sqllite;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types.ReplyMarkups;
+using TelegramListener.Services;
 using Utils;
 using Utils.Logger;
 
@@ -17,13 +19,15 @@ namespace TelegramListener.Core
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
         private readonly ILogger<EventsTelegramBotClient> _toFileLogger;
+        protected readonly IPhoneNumberVerifier _phoneNumberVerifier;
         public EventsTelegramBotClient(
-            Config config, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<EventsTelegramBotClient> toFileLogger) : base(config.BotApiKey)
+            Config config, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<EventsTelegramBotClient> toFileLogger, IPhoneNumberVerifier phoneNumberVerifier) : base(config.BotApiKey)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
+            _phoneNumberVerifier = phoneNumberVerifier;
             OnUpdate += EventsTelegramBotClient_OnUpdate;
         }
 
@@ -49,7 +53,7 @@ namespace TelegramListener.Core
 
                 if (message.Type == Telegram.Bot.Types.Enums.MessageType.ContactMessage)
                 {
-                    ContactMessage(chatId, message.From.Username, message.Contact.PhoneNumber);
+                    ContactMessage(chatId, message.From.Username, message.Contact.PhoneNumber).Wait();
                     return;
                 }
 
@@ -93,6 +97,43 @@ namespace TelegramListener.Core
             using (var db = new UserContext(_config.DbPath))
             {
 
+                var unauthUser = db.UnauthorizedUsers.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
+                if (unauthUser != null) {
+                    if (message.Text == unauthUser.Code)
+                    {
+                        db.UnauthorizedUsers.Remove(unauthUser);
+
+                        db.Users.Add(new User
+                        {
+                            ChatId = unauthUser.ChatId,
+                            Username = unauthUser.Username,
+                            PhoneNumber = unauthUser.PhoneNumber
+                        });
+                        var count = db.SaveChanges();
+
+                        SendTextMessageAsync
+                                    (chatId,
+                                    "Авторизация пройдена", replyMarkup: ReplyMarkupRemoveButton);
+                        _logger.LogIncoming($"Пользователь успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
+                        return;
+                    }
+                    else if (message.Text == "Отправить код ещё раз") {
+                        var code = _phoneNumberVerifier.SendVerifyRequest(unauthUser.PhoneNumber).Result;
+                        unauthUser.Code = code.ToString();
+                        var count = db.SaveChanges();
+                        SendTextMessageAsync
+                                    (chatId,
+                                    "Код отправлен повторно", replyMarkup: ReplyMarkupResetCode);
+                        return;
+                    }
+                    else {
+                        SendTextMessageAsync
+                                    (chatId,
+                                    "Некорректный код", replyMarkup: ReplyMarkupResetCode);
+                        _logger.LogIncoming($"Пользователь ввел некорректный код", _phoneHelper.Format(unauthUser.PhoneNumber));
+                        return;
+                    }
+                }
                 var user = db.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
                 string userStr;
                 var auth = "";
@@ -110,8 +151,7 @@ namespace TelegramListener.Core
                     _logger.LogIncoming($"Пришло сообщение неподдерживаемого типа", _phoneHelper.Format(user.PhoneNumber));
                     SendTextMessageAsync
                                 (chatId,
-                                _config.UnsupportedMessageType,
-                                replyMarkup: ReplyMarkupRemoveButton);
+                                _config.UnsupportedMessageType, replyMarkup: ReplyMarkupRemoveButton);
                     return;
                 }
 
@@ -119,8 +159,7 @@ namespace TelegramListener.Core
 
                 SendTextMessageAsync
                 (chatId,
-                $"{_config.AutoresponseText}",
-                replyMarkup: ReplyMarkupRemoveButton);
+                $"{_config.AutoresponseText}", replyMarkup: ReplyMarkupRemoveButton);
             }
         }
 
@@ -141,8 +180,7 @@ namespace TelegramListener.Core
 
                             SendTextMessageAsync
                                 (chatId,
-                                $"Рассылка уже включена",
-                                replyMarkup: ReplyMarkupRemoveButton);
+                                $"Рассылка уже включена", replyMarkup: ReplyMarkupRemoveButton);
                             return;
                         }
                         var state = states.States.First();
@@ -153,8 +191,7 @@ namespace TelegramListener.Core
                         _logger.LogIncoming($"Рассылка возобновлена", _phoneHelper.Format(user.PhoneNumber));
                         SendTextMessageAsync
                             (chatId,
-                            $"Рассылка возобновлена",
-                            replyMarkup: ReplyMarkupRemoveButton);
+                            $"Рассылка возобновлена", replyMarkup: ReplyMarkupRemoveButton);
                     }
                 }
             }
@@ -234,8 +271,7 @@ namespace TelegramListener.Core
                     {
 
                         SendTextMessageAsync(chatId,
-                            _config.AlreadySubscribedMessage,
-                            replyMarkup: ReplyMarkupRemoveButton);
+                            _config.AlreadySubscribedMessage);
                         return;
                     }
                 }
@@ -247,34 +283,64 @@ namespace TelegramListener.Core
                     replyMarkup: keyboard);
         }
 
-        private void ContactMessage(long chatId, string username, string phoneNumber) {
-            using (var db = new UserContext(_config.DbPath))
-            {
-                var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(phoneNumber);
+        private async Task ContactMessage(long chatId, string username, string phoneNumber) {
+            var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(phoneNumber);
+            using (var db = new UserContext(_config.DbPath)) {
                 if (db.Users.Any(x => x.PhoneNumber == clearedPhoneNumber))
                 {
-                    SendTextMessageAsync(chatId,
-                        "Контакт сохранен.",
-                        replyMarkup: ReplyMarkupRemoveButton);
+                    await SendTextMessageAsync(chatId,
+                        "Контакт уже есть в списке.");
                     return;
                 }
 
+                if (db.UnauthorizedUsers.Any(x => x.PhoneNumber == clearedPhoneNumber)) {
+                    await SendTextMessageAsync(chatId,
+                    "На ваш телефон отправлен код подтверждения, отправьте его сюда");
+                    return;
+                }
 
-                db.Users.Add(new User
+                var code = await _phoneNumberVerifier.SendVerifyRequest(clearedPhoneNumber);
+                db.UnauthorizedUsers.Add(new UnauthorizedUser
                 {
                     ChatId = chatId.ToString(),
                     Username = username,
-                    PhoneNumber = clearedPhoneNumber
+                    PhoneNumber = clearedPhoneNumber,
+                    Code = code.ToString()
                 });
+
                 var count = db.SaveChanges();
 
-                _logger.LogAuth("Пользователь подписался", _phoneHelper.Format(phoneNumber));
-
-                SendTextMessageAsync
-                (chatId,
-                _config.UserSubscribed,
-                replyMarkup: ReplyMarkupRemoveButton);
+                await SendTextMessageAsync(chatId,
+                    "На ваш телефон отправлен код подтверждения, отправьте его сюда",
+                    replyMarkup: ReplyMarkupResetCode);
             }
+
+
+            //using (var db = new UserContext(_config.DbPath))
+            //{
+
+            //    if (db.Users.Any(x => x.PhoneNumber == clearedPhoneNumber))
+            //    {
+            //        SendTextMessageAsync(chatId,
+            //            "Контакт сохранен.");
+            //        return;
+            //    }
+
+
+            //    db.Users.Add(new User
+            //    {
+            //        ChatId = chatId.ToString(),
+            //        Username = username,
+            //        PhoneNumber = clearedPhoneNumber
+            //    });
+            //    var count = db.SaveChanges();
+
+            //    _logger.LogAuth("Пользователь подписался", _phoneHelper.Format(phoneNumber));
+
+            //    SendTextMessageAsync
+            //    (chatId,
+            //    _config.UserSubscribed);
+            //}
         }
 
         private void Unsubscribe(long chatId) {
@@ -309,13 +375,25 @@ namespace TelegramListener.Core
                         new[]
                         {
                             new Telegram.Bot.Types.KeyboardButton("Поделиться номером телефона") {
-                                RequestContact = true
+                                RequestContact = true,
                             },
                         },
                     },
-            ResizeKeyboard = true
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
         };
 
+        private ReplyKeyboardMarkup ReplyMarkupResetCode = new ReplyKeyboardMarkup
+        {
+            Keyboard = new[] {
+                        new[]
+                        {
+                            new Telegram.Bot.Types.KeyboardButton("Отправить код ещё раз"),
+                        },
+                    },
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
         private ReplyKeyboardRemove ReplyMarkupRemoveButton = new ReplyKeyboardRemove() { RemoveKeyboard = true };
     }
 }
