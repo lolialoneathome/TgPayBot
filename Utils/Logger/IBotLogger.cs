@@ -9,6 +9,7 @@ namespace Utils.Logger
         void LogSystem(string action, string user);
         void LogError(string error);
         void LogErrorList(IEnumerable<string> errors);
+        void LogSendedList(IEnumerable<SendedMessage> errors);
         void LogAuth(string auth_message, string user);
     }
 }

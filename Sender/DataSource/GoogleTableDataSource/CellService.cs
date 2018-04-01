@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Sender.Services
+namespace Sender.DataSource.GoogleTabledataSource
 {
     public interface ICellService {
         string GetFullRange(string[] cells);

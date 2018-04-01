@@ -6,31 +6,40 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Util.Store;
 using Newtonsoft.Json;
 using PayBot.Configuration;
+using System.Threading.Tasks;
+using System;
 
 namespace Utils
 {
     public interface ISheetsServiceProvider {
-        SheetsService GetService();
+        Task<SheetsService> GetService();
     }
     public class SheetsServiceProvider : ISheetsServiceProvider
     {
         protected readonly SheetsService _service;
         private readonly string _applicationName;
-        private const string _clientSecretPath = "../conf/client_secret.json";
-        private const string _credentials = "../conf/credentials";
+        private readonly string _clientSecretPath;
+        private readonly string _credentialsFolderPath;
         private string[] scopes = { SheetsService.Scope.Spreadsheets };
         
 
-        public SheetsServiceProvider(Config config) {
+        public SheetsServiceProvider(Config config, string clientSecretPath, string credsFolderPath) {
             _applicationName = config.GoogleAppName;
+            if (string.IsNullOrEmpty(clientSecretPath))
+                throw new ArgumentNullException("Pls, set path to client secret");
+
+            if (string.IsNullOrEmpty(clientSecretPath))
+                throw new ArgumentNullException("Pls, set path to creds folder");
+            _clientSecretPath = clientSecretPath;
+            _credentialsFolderPath = credsFolderPath;
         }
 
-        public SheetsService GetService()
+        public async Task<SheetsService> GetService()
         {
             if (_service != null)
                 return _service;
 
-            var json = System.IO.File.ReadAllText(_clientSecretPath);
+            var json = await System.IO.File.ReadAllTextAsync(_clientSecretPath);
             Secret secret = JsonConvert.DeserializeObject<Secret>(json);
 
             var googleFlowInitializer = new GoogleAuthorizationCodeFlow.Initializer()
@@ -41,7 +50,7 @@ namespace Utils
                     ClientSecret = secret.installed.client_secret
                 }
             };
-            var token = (new FileDataStore(_credentials, true)).GetAsync<TokenResponse>("user").Result;
+            var token = (new FileDataStore(_credentialsFolderPath, true)).GetAsync<TokenResponse>("user").Result;
 
             UserCredential credential = new UserCredential(new GoogleAuthorizationCodeFlow(googleFlowInitializer), "user", token);
 

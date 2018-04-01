@@ -5,6 +5,6 @@ namespace Sender.Services
 {
     public interface ISenderService
     {
-        Task<bool> Send(CancellationToken cancellation);
+        Task Process(CancellationToken cancellation);
     }
 }

@@ -16,7 +16,7 @@ namespace Sender.Quartz
 
         public async Task Execute(IJobExecutionContext context)
         {
-            await _senderService.Send(context.CancellationToken);
+            await _senderService.Process(context.CancellationToken);
         }
     }
 }

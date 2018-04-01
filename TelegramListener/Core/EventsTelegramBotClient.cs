@@ -32,11 +32,16 @@ namespace TelegramListener.Core
         }
 
         public void Start() {
+            _toFileLogger.LogInformation("Start receiving...");
             StartReceiving();
+            _toFileLogger.LogInformation("Receiving started.");
+
         }
 
         public void Stop() {
+            _toFileLogger.LogInformation("Stop receiving...");
             StopReceiving();
+            _toFileLogger.LogInformation("Receiving stoped.");
         }
 
         private void EventsTelegramBotClient_OnUpdate(object sender, UpdateEventArgs e)
@@ -114,7 +119,7 @@ namespace TelegramListener.Core
                         SendTextMessageAsync
                                     (chatId,
                                     "Авторизация пройдена", replyMarkup: ReplyMarkupRemoveButton);
-                        _logger.LogIncoming($"Пользователь успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
+                        _logger.LogAuth($"Пользователь успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
                         return;
                     }
                     else if (message.Text == "Отправить код ещё раз") {
@@ -124,13 +129,14 @@ namespace TelegramListener.Core
                         SendTextMessageAsync
                                     (chatId,
                                     "Код отправлен повторно", replyMarkup: ReplyMarkupResetCode);
+                        _logger.LogAuth($"Пользователь запросил код повторно", _phoneHelper.Format(unauthUser.PhoneNumber));
                         return;
                     }
                     else {
                         SendTextMessageAsync
                                     (chatId,
                                     "Некорректный код", replyMarkup: ReplyMarkupResetCode);
-                        _logger.LogIncoming($"Пользователь ввел некорректный код", _phoneHelper.Format(unauthUser.PhoneNumber));
+                        _logger.LogAuth($"Пользователь ввел некорректный код. Отправлено на телефон: {unauthUser.Code}, пользователь ввел {message.Text }", _phoneHelper.Format(unauthUser.PhoneNumber));
                         return;
                     }
                 }
@@ -295,7 +301,8 @@ namespace TelegramListener.Core
 
                 if (db.UnauthorizedUsers.Any(x => x.PhoneNumber == clearedPhoneNumber)) {
                     await SendTextMessageAsync(chatId,
-                    "На ваш телефон отправлен код подтверждения, отправьте его сюда");
+                    "На ваш телефон отправлен код подтверждения, отправьте его сюда",
+                    replyMarkup: ReplyMarkupResetCode);
                     return;
                 }
 
@@ -313,34 +320,9 @@ namespace TelegramListener.Core
                 await SendTextMessageAsync(chatId,
                     "На ваш телефон отправлен код подтверждения, отправьте его сюда",
                     replyMarkup: ReplyMarkupResetCode);
+                _logger.LogAuth("Пользователю отправлен код", _phoneHelper.Format(clearedPhoneNumber));
             }
 
-
-            //using (var db = new UserContext(_config.DbPath))
-            //{
-
-            //    if (db.Users.Any(x => x.PhoneNumber == clearedPhoneNumber))
-            //    {
-            //        SendTextMessageAsync(chatId,
-            //            "Контакт сохранен.");
-            //        return;
-            //    }
-
-
-            //    db.Users.Add(new User
-            //    {
-            //        ChatId = chatId.ToString(),
-            //        Username = username,
-            //        PhoneNumber = clearedPhoneNumber
-            //    });
-            //    var count = db.SaveChanges();
-
-            //    _logger.LogAuth("Пользователь подписался", _phoneHelper.Format(phoneNumber));
-
-            //    SendTextMessageAsync
-            //    (chatId,
-            //    _config.UserSubscribed);
-            //}
         }
 
         private void Unsubscribe(long chatId) {

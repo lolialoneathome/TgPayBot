@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -7,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NLog.Extensions.Logging;
 using PayBot.Configuration;
+using Sender.DataSource.Base;
+using Sender.DataSource.GoogleTabledataSource;
 using Sender.Quartz;
 using Sender.Services;
 using Utils;
@@ -20,7 +23,6 @@ namespace Sender
         {
             Configuration = configuration;
         }
-        private const string _configPath = "../conf/config.json";
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -35,13 +37,17 @@ namespace Sender
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<ISenderService, SenderService>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
-            services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>();
+            services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>( p => new SheetsServiceProvider(
+                p.GetService<Config>(), 
+                Configuration.GetSection("Google").GetValue<string>("ClientSecretPath"),
+                Configuration.GetSection("Google").GetValue<string>("CredentialsPath")
+            ));
             services.AddScoped<ICellService, CellService>();
-
+            services.AddScoped<IMessageDataSource, GoogleTableDataSource>();
             services.AddScoped<SendPaymentsInfoJob>();
             services.AddSingleton(p =>
             {
-                var json = System.IO.File.ReadAllText(_configPath);
+                var json = System.IO.File.ReadAllText(Configuration.GetSection("ConfigPath").Get<string>());
                 return JsonConvert.DeserializeObject<Config>(json);
             });
         }
@@ -51,16 +57,10 @@ namespace Sender
             (IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime,
             IServiceProvider serviceProvider)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            app.UseMvc();
-
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             //configure NLog
-            loggerFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
-            loggerFactory.ConfigureNLog("nlog.config");
+            loggerFactory.AddNLog();
+            loggerFactory.ConfigureNLog(Path.Combine(env.ContentRootPath, @"NLog.config"));
 
             var quartz = new QuartzStartup(serviceProvider);
             lifetime.ApplicationStarted.Register(quartz.Start);

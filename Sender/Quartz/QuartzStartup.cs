@@ -43,18 +43,7 @@ namespace Sender.Quartz
 
             var properties = new NameValueCollection
             {
-                // json serialization is the one supported under .NET Core (binary isn't)
                 ["quartz.serializer.type"] = "json",
-
-                // the following setup of job store is just for example and it didn't change from v2
-                //["quartz.jobStore.type"] = "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz",
-                //["quartz.jobStore.useProperties"] = "true",
-                //["quartz.jobStore.dataSource"] = "default",
-                //["quartz.jobStore.tablePrefix"] = "QRTZ_",
-                //["quartz.jobStore.driverDelegateType"] = "Quartz.Impl.AdoJobStore.SqlServerDelegate, Quartz",
-                //["quartz.dataSource.default.provider"] = "sqlite-provider",
-                //["quartz.dataSource.default.connectionString"] = @"DataSource=quartz.db",
-                //["quartz.threadPool.threadCount"] = "5"
             };
 
             var schedulerFactory = new StdSchedulerFactory(properties);

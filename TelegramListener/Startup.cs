@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using System;
+using System.IO;
 using TelegramListener.Core;
 using TelegramListener.Services;
 using Utils;
@@ -64,8 +65,8 @@ namespace TelegramListener
 
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             //configure NLog
-            loggerFactory.AddNLog(new NLogProviderOptions { CaptureMessageTemplates = true, CaptureMessageProperties = true });
-            loggerFactory.ConfigureNLog("nlog.config");
+            loggerFactory.AddNLog();
+            loggerFactory.ConfigureNLog(Path.Combine(env.ContentRootPath, @"NLog.config"));
 
 
             var listener = (EventsTelegramBotClient)(serviceProvider.GetService(typeof(EventsTelegramBotClient)));
