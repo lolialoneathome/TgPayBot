@@ -10,38 +10,38 @@ namespace Utils.Logger
 {
     public class ToGoogleTableBotLogger : IBotLogger
     {
-        private readonly Config _config;
+        private readonly IConfigService _configService;
         private readonly ISheetsServiceProvider _sheetServiceProvider;
 
-        public ToGoogleTableBotLogger(Config config, ISheetsServiceProvider sheetServiceProvider) {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+        public ToGoogleTableBotLogger(IConfigService configService, ISheetsServiceProvider sheetServiceProvider) {
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _sheetServiceProvider  = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
         }
 
         public void LogSended(string action, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.Outgoing);
+            LogToTable(_configService.Config.SpreadsheetLog.Messages, action, user, MessageType.Outgoing);
         }
 
 
         public void LogAuth(string auth_message, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Auths, auth_message, user);
+            LogToTable(_configService.Config.SpreadsheetLog.Auths, auth_message, user);
         }
 
         public void LogError(string error)
         {
-            LogToTable(_config.SpreadsheetLog.Errors, error);
+            LogToTable(_configService.Config.SpreadsheetLog.Errors, error);
         }
 
         public void LogIncoming(string action, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.Incoming);
+            LogToTable(_configService.Config.SpreadsheetLog.Messages, action, user, MessageType.Incoming);
         }
 
         public void LogSystem(string action, string user)
         {
-            LogToTable(_config.SpreadsheetLog.Messages, action, user, MessageType.System);
+            LogToTable(_configService.Config.SpreadsheetLog.Messages, action, user, MessageType.System);
         }
 
         private async Task LogToTable(string listname, string message, string user = null, MessageType? messageType = null) {
@@ -65,7 +65,7 @@ namespace Utils.Logger
             valueRange.Values = new List<IList<object>> { oblist };
 
 
-            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _config.SpreadsheetLog.Id, range);
+            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _configService.Config.SpreadsheetLog.Id, range);
             request.ValueInputOption = valueInputOption;
             request.InsertDataOption = insertDataOption;
             request.ResponseDateTimeRenderOption = SpreadsheetsResource.ValuesResource.AppendRequest.ResponseDateTimeRenderOptionEnum.FORMATTEDSTRING;
@@ -76,7 +76,7 @@ namespace Utils.Logger
         {
             var service = _sheetServiceProvider.GetService().Result;
 
-            var range = $"{_config.SpreadsheetLog.Errors}!A:B";
+            var range = $"{_configService.Config.SpreadsheetLog.Errors}!A:B";
             SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum valueInputOption
                 = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
             SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum insertDataOption
@@ -86,7 +86,7 @@ namespace Utils.Logger
             valueRange.Values = oblist;
 
 
-            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _config.SpreadsheetLog.Id, range);
+            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _configService.Config.SpreadsheetLog.Id, range);
             request.ValueInputOption = valueInputOption;
             request.InsertDataOption = insertDataOption;
             request.ResponseDateTimeRenderOption = SpreadsheetsResource.ValuesResource.AppendRequest.ResponseDateTimeRenderOptionEnum.FORMATTEDSTRING;
@@ -97,7 +97,7 @@ namespace Utils.Logger
         {
             var service = _sheetServiceProvider.GetService().Result;
 
-            var range = $"{_config.SpreadsheetLog.Messages}!A:D";
+            var range = $"{_configService.Config.SpreadsheetLog.Messages}!A:D";
             SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum valueInputOption
                 = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
             SpreadsheetsResource.ValuesResource.AppendRequest.InsertDataOptionEnum insertDataOption
@@ -108,7 +108,7 @@ namespace Utils.Logger
             valueRange.Values = listOfObj;//new List<IList<object>> { listOfObj };
 
 
-            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _config.SpreadsheetLog.Id, range);
+            SpreadsheetsResource.ValuesResource.AppendRequest request = service.Spreadsheets.Values.Append(valueRange, _configService.Config.SpreadsheetLog.Id, range);
             request.ValueInputOption = valueInputOption;
             request.InsertDataOption = insertDataOption;
             request.ResponseDateTimeRenderOption = SpreadsheetsResource.ValuesResource.AppendRequest.ResponseDateTimeRenderOptionEnum.FORMATTEDSTRING;

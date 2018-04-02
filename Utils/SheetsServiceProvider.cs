@@ -23,8 +23,8 @@ namespace Utils
         private string[] scopes = { SheetsService.Scope.Spreadsheets };
         
 
-        public SheetsServiceProvider(Config config, string clientSecretPath, string credsFolderPath) {
-            _applicationName = config.GoogleAppName;
+        public SheetsServiceProvider(IConfigService configService, string clientSecretPath, string credsFolderPath) {
+            _applicationName = configService.Config.GoogleAppName;
             if (string.IsNullOrEmpty(clientSecretPath))
                 throw new ArgumentNullException("Pls, set path to client secret");
 
