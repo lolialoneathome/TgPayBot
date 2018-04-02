@@ -4,22 +4,13 @@ namespace Sqllite
 {
     public class UserContext : DbContext
     {
-        protected readonly string _dbPath;
-        public UserContext(string dbPath)
+        public UserContext(DbContextOptions<UserContext> options)
+        : base(options)
         {
-            _dbPath = dbPath ?? throw new System.Exception("Empty db path");
-        }
 
-        public UserContext(DbContextOptions options) : base(options)
-        {
         }
 
         public DbSet<User> Users { get; set; }
         public DbSet<UnauthorizedUser> UnauthorizedUsers { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite($"Data Source={_dbPath}");
-        }
     }
 }
