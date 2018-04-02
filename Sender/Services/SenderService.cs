@@ -16,21 +16,33 @@ namespace Sender.Services
 {
     public class SenderService : ISenderService
     {
-        private readonly Config _config;
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
         private readonly ILogger<SenderService> _toFileLogger;
         protected readonly IMessageDataSource _messageDataSource;
+
+        protected readonly IConfigService _configService;
+        protected readonly UserContext _userContext;
+        protected readonly StateContext _stateContext;
         public SenderService
-            (Config config, IBotLogger logger, IPhoneHelper phoneHelper, ILogger<SenderService> toFileLogger, IMessageDataSource messageDataSource) {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
-  
+            (IConfigService configService,
+            IBotLogger logger,
+            IPhoneHelper phoneHelper,
+            ILogger<SenderService> toFileLogger,
+            IMessageDataSource messageDataSource,
+            UserContext userContext,
+            StateContext stateContext)
+        {
+            _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+            _stateContext = stateContext ?? throw new ArgumentNullException(nameof(stateContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
             _messageDataSource = messageDataSource ?? throw new ArgumentNullException(nameof(messageDataSource));
         }
 
+        protected Config _config => _configService.Config;
 
         public async Task Process(CancellationToken cancellation)
         {
@@ -38,8 +50,10 @@ namespace Sender.Services
             var sendedList = new List<SendedMessage>();
             var isErrorSended = false;
             var isSuccessSended = false;
-            try {
-                if (!CheckEnable()) {
+            try
+            {
+                if (!CheckEnable())
+                {
                     _toFileLogger.LogInformation("Sendidng stoped. Do nothing.");
                     _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
                     return;
@@ -47,9 +61,10 @@ namespace Sender.Services
                 _toFileLogger.LogInformation("Start sending...");
                 _logger.LogSystem($"Начинаю отправку сообщений...", null);
 
-                var rows = await _messageDataSource.GetMessages();
+                var rows = await _messageDataSource.GetMessages(_config);
                 var sendedMesageCount = 0;
-                if (rows != null) {
+                if (rows != null)
+                {
                     var rowsForUpdate = new Dictionary<string, List<IMessage>>();
                     foreach (var row in rows.OrderBy(x => x.LastModifiedDate))
                     {
@@ -110,38 +125,33 @@ namespace Sender.Services
 
         private bool CheckEnable()
         {
-            using (var states = new StateContext(_config.DbPath))
-            {
-                if (states.States.First().IsEnabled == -1)
-                    return false;
+            if (_stateContext.States.First().IsEnabled == -1)
+                return false;
 
-                return true;
-            }
+            return true;
         }
 
         private async Task<SendedMessage> SendMessageAsync(string text, string tgUser, string dbpath, string botKey)
         {
             ChatId destId = null;
-            using (var db = new UserContext(dbpath))
+            var user = _userContext.Users.SingleOrDefault(
+                x => x.Username != null && x.Username.ToLower() == tgUser.ToLower()
+                || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(tgUser));
+            if (user == null)
             {
-                var user = db.Users.SingleOrDefault(
-                    x => x.Username != null && x.Username.ToLower() == tgUser.ToLower()
-                    || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(tgUser));
-                if (user == null)
-                {
-                    _toFileLogger.LogDebug("До ");
-                    _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
-                    return null;
-                }
-                destId = new ChatId(user.ChatId);
-
-                var bot = new Telegram.Bot.TelegramBotClient(botKey);
-                await bot.SendTextMessageAsync(destId, text);
-                return new SendedMessage() {
-                    To = _phoneHelper.Format(user.PhoneNumber),
-                    Message = text
-                };
+                _toFileLogger.LogDebug("До ");
+                _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
+                return null;
             }
+            destId = new ChatId(user.ChatId);
+
+            var bot = new Telegram.Bot.TelegramBotClient(botKey);
+            await bot.SendTextMessageAsync(destId, text);
+            return new SendedMessage()
+            {
+                To = _phoneHelper.Format(user.PhoneNumber),
+                Message = text
+            };
         }
     }
 }

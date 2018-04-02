@@ -13,20 +13,18 @@ namespace Sender.DataSource.GoogleTabledataSource
 {
     public class GoogleTableDataSource : IMessageDataSource
     {
-        protected readonly Config _config;
         protected readonly ICellService _cellService;
         protected readonly ISheetsServiceProvider _sheetServiceProvider;
-        public GoogleTableDataSource(Config config, ICellService cellService, ISheetsServiceProvider sheetServiceProvider) {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+        public GoogleTableDataSource(ICellService cellService, ISheetsServiceProvider sheetServiceProvider) {
             _cellService = cellService ?? throw new ArgumentNullException(nameof(cellService));
             _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
         }
 
-        public async Task<IEnumerable<IMessage>> GetMessages()
+        public async Task<IEnumerable<IMessage>> GetMessages(Config config)
         {
             var service = await _sheetServiceProvider.GetService();
             var result = new List<GoogleTableValueRow>();
-            foreach (var spreadsheet in _config.Spreadsheets)
+            foreach (var spreadsheet in config.Spreadsheets)
             {
                 var spreadsheetId = spreadsheet.Id;
                 foreach (var list in spreadsheet.Lists)

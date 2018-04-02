@@ -27,19 +27,6 @@ namespace Sender.Quartz
                 throw new InvalidOperationException("Already started.");
             }
 
-            DbProvider.RegisterDbMetadata("sqlite-provider", new DbMetadata()
-            {
-                AssemblyName = typeof(SqliteConnection).Assembly.GetName().Name,
-                ConnectionType = typeof(SqliteConnection),
-                CommandType = typeof(SqliteCommand),
-                ParameterType = typeof(SqliteParameter),
-                ParameterDbType = typeof(DbType),
-                ParameterDbTypePropertyName = "DbType",
-                ParameterNamePrefix = "@",
-                ExceptionType = typeof(SqliteException),
-                BindByName = true
-            });
-
 
             var properties = new NameValueCollection
             {
@@ -57,7 +44,7 @@ namespace Sender.Quartz
                 .WithIdentity("SendPaymentsInfo", "group1")
                 .Build();
 
-            var timeout = ((Config)(_serviceProvider.GetService(typeof(Config)))).SenderTimeout;
+            var timeout = ((IConfigService)(_serviceProvider.GetService(typeof(IConfigService)))).Config.SenderTimeout;
             var paymentsInfoTrigger = TriggerBuilder.Create()
                 .WithIdentity("SendPaymentsTrigger", "group1")
                 .WithSimpleSchedule(x => x

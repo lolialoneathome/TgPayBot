@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using PayBot.Configuration;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sender.DataSource.Base
@@ -12,7 +13,7 @@ namespace Sender.DataSource.Base
         /// Get List of all messages in DS
         /// </summary>
         /// <returns></returns>
-        Task<IEnumerable<IMessage>> GetMessages();
+        Task<IEnumerable<IMessage>> GetMessages(Config config);
 
         /// <summary>
         /// Batch update messages status. All messages must be from ONE table

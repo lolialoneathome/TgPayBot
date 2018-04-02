@@ -2,6 +2,7 @@
 using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using Sender.DataSource.Base;
 using Sender.DataSource.GoogleTabledataSource;
 using Sender.Quartz;
 using Sender.Services;
+using Sqllite;
 using Utils;
 using Utils.Logger;
 
@@ -34,22 +36,22 @@ namespace Sender
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
 
-            services.AddScoped<IPhoneHelper, PhoneHelper>();
-            services.AddScoped<ISenderService, SenderService>();
-            services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
-            services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>( p => new SheetsServiceProvider(
-                p.GetService<Config>(), 
+            services.AddDbContext<UserContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
+            services.AddDbContext<StateContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
+
+            services.AddTransient<IPhoneHelper, PhoneHelper>();
+            services.AddTransient<ISenderService, SenderService>();
+            services.AddTransient<IBotLogger, ToGoogleTableBotLogger>();
+            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService("../conf/config.json"));
+            services.AddTransient<ISheetsServiceProvider, SheetsServiceProvider>( p => new SheetsServiceProvider(
+                p.GetService<IConfigService>(), 
                 Configuration.GetSection("Google").GetValue<string>("ClientSecretPath"),
                 Configuration.GetSection("Google").GetValue<string>("CredentialsPath")
             ));
-            services.AddScoped<ICellService, CellService>();
-            services.AddScoped<IMessageDataSource, GoogleTableDataSource>();
-            services.AddScoped<SendPaymentsInfoJob>();
-            services.AddSingleton(p =>
-            {
-                var json = System.IO.File.ReadAllText(Configuration.GetSection("ConfigPath").Get<string>());
-                return JsonConvert.DeserializeObject<Config>(json);
-            });
+            services.AddTransient<ICellService, CellService>();
+            services.AddTransient<IMessageDataSource, GoogleTableDataSource>();
+
+            services.AddTransient<SendPaymentsInfoJob>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
