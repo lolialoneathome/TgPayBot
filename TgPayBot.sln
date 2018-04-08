@@ -5,15 +5,17 @@ VisualStudioVersion = 15.0.27130.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sqllite", "Sqllite\Sqllite.csproj", "{B5841804-EACD-45F6-882B-D47170ED80A9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Configuration", "Configuration\Configuration.csproj", "{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Configuration", "Configuration\Configuration.csproj", "{1AFD68C1-DEA0-4DEE-87FA-5D28183F1E29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sender", "Sender\Sender.csproj", "{719A5E90-5DCD-4CAB-B196-BB6EF6493650}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sender", "Sender\Sender.csproj", "{719A5E90-5DCD-4CAB-B196-BB6EF6493650}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramListener", "TelegramListener\TelegramListener.csproj", "{71DD644E-DF49-4F76-8F42-EFFEC4459231}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils\Utils.csproj", "{3065DE30-1D4A-434F-BECF-8CE27FDA835E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils", "Utils\Utils.csproj", "{3065DE30-1D4A-434F-BECF-8CE27FDA835E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CredsGenerator", "CredsGenerator\CredsGenerator.csproj", "{5E85705B-902C-403E-A0AD-6321D219890F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminApi", "AdminApi\AdminApi.csproj", "{B3BDDD7A-7423-4E17-A0C8-4820A973814D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramBotApi", "TelegramBotApi\TelegramBotApi.csproj", "{F1BAF423-B806-471B-A69A-9D7367696EC7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,10 +35,6 @@ Global
 		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{719A5E90-5DCD-4CAB-B196-BB6EF6493650}.Release|Any CPU.Build.0 = Release|Any CPU
-		{71DD644E-DF49-4F76-8F42-EFFEC4459231}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{71DD644E-DF49-4F76-8F42-EFFEC4459231}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{71DD644E-DF49-4F76-8F42-EFFEC4459231}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{71DD644E-DF49-4F76-8F42-EFFEC4459231}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3065DE30-1D4A-434F-BECF-8CE27FDA835E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +43,14 @@ Global
 		{5E85705B-902C-403E-A0AD-6321D219890F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5E85705B-902C-403E-A0AD-6321D219890F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5E85705B-902C-403E-A0AD-6321D219890F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3BDDD7A-7423-4E17-A0C8-4820A973814D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3BDDD7A-7423-4E17-A0C8-4820A973814D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3BDDD7A-7423-4E17-A0C8-4820A973814D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3BDDD7A-7423-4E17-A0C8-4820A973814D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1BAF423-B806-471B-A69A-9D7367696EC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1BAF423-B806-471B-A69A-9D7367696EC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1BAF423-B806-471B-A69A-9D7367696EC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1BAF423-B806-471B-A69A-9D7367696EC7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
