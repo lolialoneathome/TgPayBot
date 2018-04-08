@@ -22,6 +22,7 @@
     <PackageReference Include="Telegram.Bot" Version="13.4.0" />
     <PackageReference Include="NLog" Version="4.5.0-beta07" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.0.0-rtm-rc1" />
+    <PackageReference Include="Twilio" Version="5.10.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,4 @@
-﻿using Sender.DataSource;
-using Sender.DataSource.Base;
+﻿using Sender.DataSource.Base;
 using System;
 
 namespace Sender.DataSource.GoogleTabledataSource
@@ -14,7 +13,7 @@ namespace Sender.DataSource.GoogleTabledataSource
         public string IsMessageAlreadySended { get; set; }
         public string Text { get; set; }
         public string To { get; set; }
-
+        public SenderType SenderType { get; set; }
         /// <summary>
         /// Fields with data for update this message
         /// </summary>

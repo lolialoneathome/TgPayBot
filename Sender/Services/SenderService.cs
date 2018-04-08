@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using PayBot.Configuration;
 using Sender.DataSource.Base;
+using Sender.DataSource.GoogleTabledataSource;
 using Sqllite;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 using Utils;
 using Utils.Logger;
 
@@ -107,7 +111,7 @@ namespace Sender.Services
                                 row.To = _phoneHelper.Format(row.To);
                             }
                             var phone = row.To;
-                            var sendMessageResult = await SendMessageAsync(text, phone, _config.DbPath, _config.BotApiKey);
+                            var sendMessageResult = await SendMessageAsync(row.SenderType, text, phone, _config.DbPath, _config.BotApiKey);
                             if (sendMessageResult != null)
                             {
                                 sendedList.Add(sendMessageResult);
@@ -154,7 +158,7 @@ namespace Sender.Services
             return true;
         }
 
-        private async Task<SendedMessage> SendMessageAsync(string text, string tgUser, string dbpath, string botKey)
+        private async Task<SendedMessage> SendMessageAsync(SenderType type, string text, string tgUser, string dbpath, string botKey)
         {
             ChatId destId = null;
             var user = _userContext.Users.SingleOrDefault(
@@ -166,14 +170,31 @@ namespace Sender.Services
                 _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
                 return null;
             }
-            destId = new ChatId(user.ChatId);
+            if (type == SenderType.Telegram)
+            {
+                destId = new ChatId(user.ChatId);
+                var bot = new Telegram.Bot.TelegramBotClient(_configService.Config.BotApiKey);
+                await bot.SendTextMessageAsync(destId, text);
+            }
+            else {
+                var accountSid = _configService.Config.Twillo.Sid;
+                var authToken = _configService.Config.Twillo.Token;
 
-            var bot = new Telegram.Bot.TelegramBotClient(botKey);
-            await bot.SendTextMessageAsync(destId, text);
+                TwilioClient.Init(accountSid, authToken);
+
+                var message = await MessageResource.CreateAsync(
+                    to: new PhoneNumber(user.PhoneNumber),
+                    from: new PhoneNumber(_configService.Config.Twillo.PhoneNumber),
+                    body: text);
+            }
+            
+
+            //var bot = new Telegram.Bot.TelegramBotClient(botKey);
+            //await bot.SendTextMessageAsync(destId, text);
             return new SendedMessage()
             {
                 To = _phoneHelper.Format(user.PhoneNumber),
-                Message = text
+                Message = $"!(ОТПРАВЛЕНО SMS) {text}"
             };
         }
     }

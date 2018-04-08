@@ -11,5 +11,6 @@ namespace Sender.DataSource.Base
         string To { get; set; }
         string Table { get; set; }
         string CellForUpdate { get; set; }
+        SenderType SenderType { get; set; }
     }
 }

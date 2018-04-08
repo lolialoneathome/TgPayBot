@@ -83,9 +83,17 @@ namespace Sender.DataSource.GoogleTabledataSource
 
                         if (item.Status != null && item.Status.ToLower() == "надо отправить"
                             && (item.IsMessageAlreadySended == null || item.IsMessageAlreadySended.ToLower() != "да")) {
+                            item.SenderType = SenderType.Telegram;
                             result.Add(item);
                         }
-                            
+
+                        if (item.Status != null && item.Status.ToLower() == "надо отправить sms"
+                            && (item.IsMessageAlreadySended == null || item.IsMessageAlreadySended.ToLower() != "да"))
+                        {
+                            item.SenderType = SenderType.Sms;
+                            result.Add(item);
+                        }
+
                     }
                 }
             }
