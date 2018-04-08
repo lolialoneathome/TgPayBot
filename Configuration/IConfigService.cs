@@ -1,8 +1,10 @@
-﻿namespace PayBot.Configuration
+﻿using System.Threading.Tasks;
+
+namespace PayBot.Configuration
 {
     public interface IConfigService
     {
         Config Config { get; }
-        void UpdateConfig(Config config);
+        Task UpdateConfig(Config config);
     }
 }
