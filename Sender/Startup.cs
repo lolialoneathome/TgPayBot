@@ -42,7 +42,7 @@ namespace Sender
             services.AddTransient<IPhoneHelper, PhoneHelper>();
             services.AddTransient<ISenderService, SenderService>();
             services.AddTransient<IBotLogger, ToGoogleTableBotLogger>();
-            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService("../conf/config.json"));
+            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
             services.AddTransient<ISheetsServiceProvider, SheetsServiceProvider>( p => new SheetsServiceProvider(
                 p.GetService<IConfigService>(), 
                 Configuration.GetSection("Google").GetValue<string>("ClientSecretPath"),

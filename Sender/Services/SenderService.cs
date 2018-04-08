@@ -44,6 +44,26 @@ namespace Sender.Services
 
         protected Config _config => _configService.Config;
 
+        private bool IsListValid()
+        {
+            foreach (var spreedSheet in _config.Spreadsheets) {
+                foreach (var list in spreedSheet.Lists)
+                {
+                    if (!Regex.IsMatch(list.Date, @"^[a-zA-Z]+$"))
+                        return false;
+                    if (!Regex.IsMatch(list.IsSendedColumn, @"^[a-zA-Z]+$"))
+                        return false;
+                    if (!Regex.IsMatch(list.MessageText, @"^[a-zA-Z]+$"))
+                        return false;
+                    if (!Regex.IsMatch(list.Status, @"^[a-zA-Z]+$"))
+                        return false;
+                    if (!Regex.IsMatch(list.TgUser, @"^[a-zA-Z]+$"))
+                        return false;
+                }
+            }
+            return true;
+        }
+
         public async Task Process(CancellationToken cancellation)
         {
             var errorList = new List<string>();
@@ -60,6 +80,9 @@ namespace Sender.Services
                 }
                 _toFileLogger.LogInformation("Start sending...");
                 _logger.LogSystem($"Начинаю отправку сообщений...", null);
+
+                if (!IsListValid())
+                    throw new InvalidOperationException("Invalid config file!");
 
                 var rows = await _messageDataSource.GetMessages(_config);
                 var sendedMesageCount = 0;
