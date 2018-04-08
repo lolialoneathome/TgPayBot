@@ -37,5 +37,11 @@ namespace AdminApi.Controllers
                 return BadRequest(err.Message);
             }
         }
+
+        [Route("healthcheck")]
+        public string HealthCheck()
+        {
+            return "PASSED";
+        }
     }
 }
