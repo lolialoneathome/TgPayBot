@@ -25,7 +25,7 @@ namespace AdminApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService("../conf/config.json"));
+            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
             services.AddCors();
         }
 
