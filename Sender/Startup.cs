@@ -59,6 +59,7 @@ namespace Sender
             (IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime,
             IServiceProvider serviceProvider)
         {
+            app.UseMvc();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             //configure NLog
             loggerFactory.AddNLog();
