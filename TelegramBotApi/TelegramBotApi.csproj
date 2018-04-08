@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.3" />
+    <PackageReference Include="NLog" Version="4.5.0" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.0.0" />
     <PackageReference Include="Telegram.Bot" Version="13.4.0" />
     <PackageReference Include="Twilio" Version="5.10.0" />
   </ItemGroup>
@@ -21,6 +23,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Sqllite\Sqllite.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

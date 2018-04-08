@@ -71,5 +71,10 @@ namespace TelegramBotApi.Controllers
                     break;
             }
         }
+
+        [Route("healthcheck")]
+        public string HealthCheck() {
+            return "PASSED";
+        }
     }
 }
