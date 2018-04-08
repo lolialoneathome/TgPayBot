@@ -39,12 +39,10 @@ namespace TelegramBotApi
             services.AddSingleton<ILoggerFactory, LoggerFactory>();
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
-
+            services.AddSingleton<Bot>();
             services.AddScoped<ITelegramBotClient, TelegramBotClient>();
             services.AddDbContext<UserContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
             services.AddDbContext<StateContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
-
-
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>(p => new SheetsServiceProvider(
@@ -57,7 +55,6 @@ namespace TelegramBotApi
             services.AddScoped<IUserMessageService, UserMessageService>();
             services.AddScoped<IAdminMessageService, AdminMessageService>();
             services.AddScoped<IPhoneNumberVerifier, FakePhoneNumberVerifier>();
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -71,7 +68,7 @@ namespace TelegramBotApi
             loggerFactory.ConfigureNLog(Path.Combine(env.ContentRootPath, @"NLog.config"));
 
             app.UseMvc();
-
+            var bot = new Bot(serviceProvider.GetService<IConfigService>());
             lifetime.ApplicationStarted.Register(setWebhook);
             lifetime.ApplicationStopping.Register(deleteWebHook);
             
