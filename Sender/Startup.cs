@@ -11,6 +11,7 @@ using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using Sender.DataSource.Base;
 using Sender.DataSource.GoogleTabledataSource;
+using Sender.DataSource.SenderAgents;
 using Sender.Quartz;
 using Sender.Services;
 using Sqllite;
@@ -49,7 +50,11 @@ namespace Sender
                 Configuration.GetSection("Google").GetValue<string>("CredentialsPath")
             ));
             services.AddTransient<ICellService, CellService>();
-            services.AddTransient<IMessageDataSource, GoogleTableDataSource>();
+            services.AddTransient<IDataSource, GoogleTableDataSource>();
+
+            services.AddScoped<ISenderAgentProvider, SenderAgentProvider>();
+            services.AddTransient<TelegramSenderAgent>();
+            services.AddTransient<TwilioSmsSenderAgent>();
 
             services.AddTransient<SendPaymentsInfoJob>();
         }

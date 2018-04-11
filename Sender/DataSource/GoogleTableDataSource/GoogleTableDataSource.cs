@@ -11,7 +11,7 @@ using Utils;
 
 namespace Sender.DataSource.GoogleTabledataSource
 {
-    public class GoogleTableDataSource : IMessageDataSource
+    public class GoogleTableDataSource : IDataSource
     {
         protected readonly ICellService _cellService;
         protected readonly ISheetsServiceProvider _sheetServiceProvider;
@@ -20,7 +20,7 @@ namespace Sender.DataSource.GoogleTabledataSource
             _sheetServiceProvider = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
         }
 
-        public async Task<IEnumerable<IMessage>> GetMessages(Config config)
+        public async Task<IEnumerable<INeedSend>> GetMessages(Config config)
         {
             var service = await _sheetServiceProvider.GetService();
             var result = new List<GoogleTableValueRow>();
@@ -49,8 +49,8 @@ namespace Sender.DataSource.GoogleTabledataSource
                         rowNum++;
                         if (rowNum == 1) continue;
                         var strDate = (dateIndex < row.Count()) ? row[dateIndex] : null;
-                        var status = (statusIndex < row.Count()) ? row[statusIndex]?.ToString() : null;
-                        var messageSended = (sendedIndex < row.Count()) ? row[sendedIndex]?.ToString() : null;
+                        var status = (statusIndex < row.Count()) ? row[statusIndex]?.ToString().ToLower() : null;
+                        var messageAlreadySended = (sendedIndex < row.Count()) ? row[sendedIndex]?.ToString().ToLower() : null;
                         var text = (textIndex < row.Count()) ? row[textIndex]?.ToString() : null;
                         var tg = (tgUserIndex < row.Count()) ? row[tgUserIndex]?.ToString() : null;
 
@@ -65,42 +65,29 @@ namespace Sender.DataSource.GoogleTabledataSource
                             ? dt
                             : (DateTime?)null;
 
+                        if ((status != "надо отправить"
+                            && status != "надо отправить sms")
+                            || messageAlreadySended == "да")
+                            continue;
+
+
                         var item = new GoogleTableValueRow()
                         {
                             LastModifiedDate = date == null ? DateTime.MinValue : (DateTime)date,
-                            Status = status,
-                            IsMessageAlreadySended = messageSended,
                             Text = text,
                             To = tg,
                             Table = spreadsheetId,
-                            CellForUpdate = $"{list.ListName}!{list.IsSendedColumn}{rowNum}"
+                            CellForUpdate = $"{list.ListName}!{list.IsSendedColumn}{rowNum}",
+                            SenderType = status == "надо отправить" ? SenderType.Telegram : SenderType.Sms
                         };
-
-                        // If all values empty, we think its end
-                        if (strDate != null && date == null && string.IsNullOrEmpty(status)
-                            && string.IsNullOrEmpty(messageSended) && string.IsNullOrEmpty(text) && string.IsNullOrEmpty(tg))
-                            break;
-
-                        if (item.Status != null && item.Status.ToLower() == "надо отправить"
-                            && (item.IsMessageAlreadySended == null || item.IsMessageAlreadySended.ToLower() != "да")) {
-                            item.SenderType = SenderType.Telegram;
-                            result.Add(item);
-                        }
-
-                        if (item.Status != null && item.Status.ToLower() == "надо отправить sms"
-                            && (item.IsMessageAlreadySended == null || item.IsMessageAlreadySended.ToLower() != "да"))
-                        {
-                            item.SenderType = SenderType.Sms;
-                            result.Add(item);
-                        }
-
+                        result.Add(item);
                     }
                 }
             }
             return result;
         }
 
-        public async Task<bool> UpdateMessageStatus(IEnumerable<IMessage> messages)
+        public async Task<bool> UpdateMessageStatus(IEnumerable<INeedSend> messages)
         {
             List<ValueRange> data = new List<ValueRange>();
             foreach (var row in messages)

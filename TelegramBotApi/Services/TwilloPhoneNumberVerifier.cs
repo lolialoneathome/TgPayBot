@@ -6,20 +6,23 @@ using System.Threading.Tasks;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
+using Utils;
 
 namespace TelegramBotApi.Services
 {
     public class TwilloPhoneNumberVerifier : IPhoneNumberVerifier
     {
         private readonly Config _config;
-        public TwilloPhoneNumberVerifier(Config config) {
+        protected readonly IPhoneHelper _phoneHelper;
+        public TwilloPhoneNumberVerifier(Config config, IPhoneHelper phoneHelper) {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
         }
 
         public async Task<int> SendVerifyRequest(string phone)
         {
             var code = GenerateCode();
-            await SendSms($"+{phone}", code.ToString());
+            await SendSms(_phoneHelper.GetPhoneNumberForTwilio(phone), code.ToString());
             return code;
         }
 

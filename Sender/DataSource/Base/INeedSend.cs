@@ -2,15 +2,13 @@
 
 namespace Sender.DataSource.Base
 {
-    public interface IMessage
+    public interface INeedSend
     {
         DateTime LastModifiedDate { get; set; }
-        string Status { get; set; }
-        string IsMessageAlreadySended { get; set; }
         string Text { get; set; }
         string To { get; set; }
+        SenderType SenderType { get; set; }
         string Table { get; set; }
         string CellForUpdate { get; set; }
-        SenderType SenderType { get; set; }
     }
 }

@@ -9,6 +9,7 @@ namespace Utils
         string Format(string phone);
         bool IsPhone(string phone);
         string GetOnlyNumerics(string phone);
+        string GetPhoneNumberForTwilio(string phone);
     }
     public class PhoneHelper : IPhoneHelper
     {
@@ -28,6 +29,11 @@ namespace Utils
 
         public string GetOnlyNumerics(string phone) {
             return string.Join("", phone.Where(c => Char.IsDigit(c)).ToArray());
+        }
+
+        public string GetPhoneNumberForTwilio(string phone) {
+            var clearedPhone = GetOnlyNumerics(phone);
+            return $"+{clearedPhone}";
         }
     }
 }

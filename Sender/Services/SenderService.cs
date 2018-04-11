@@ -23,19 +23,21 @@ namespace Sender.Services
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
         private readonly ILogger<SenderService> _toFileLogger;
-        protected readonly IMessageDataSource _messageDataSource;
+        protected readonly IDataSource _messageDataSource;
 
         protected readonly IConfigService _configService;
         protected readonly UserContext _userContext;
         protected readonly StateContext _stateContext;
+        protected readonly ISenderAgentProvider _senderAgentProvider;
         public SenderService
             (IConfigService configService,
             IBotLogger logger,
             IPhoneHelper phoneHelper,
             ILogger<SenderService> toFileLogger,
-            IMessageDataSource messageDataSource,
+            IDataSource messageDataSource,
             UserContext userContext,
-            StateContext stateContext)
+            StateContext stateContext,
+            ISenderAgentProvider senderAgentProvider)
         {
             _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
             _stateContext = stateContext ?? throw new ArgumentNullException(nameof(stateContext));
@@ -44,6 +46,7 @@ namespace Sender.Services
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
             _messageDataSource = messageDataSource ?? throw new ArgumentNullException(nameof(messageDataSource));
+            _senderAgentProvider = senderAgentProvider ?? throw new ArgumentNullException(nameof(senderAgentProvider));
         }
 
         protected Config _config => _configService.Config;
@@ -92,33 +95,43 @@ namespace Sender.Services
                 var sendedMesageCount = 0;
                 if (rows != null)
                 {
-                    var rowsForUpdate = new Dictionary<string, List<IMessage>>();
-                    foreach (var row in rows.OrderBy(x => x.LastModifiedDate))
+                    var rowsForUpdate = new Dictionary<string, List<INeedSend>>();
+                    foreach (var message in rows.OrderBy(x => x.LastModifiedDate))
                     {
                         {
-                            var text = row.Text;
-                            if (row.To == null)
+                            var text = message.Text;
+                            if (message.To == null)
                             {
-                                var list = Regex.Match(row.CellForUpdate, @"\d+").Value;
-                                var rownum = Regex.Match(row.CellForUpdate, @"^(.*?)!").Value;
+                                var list = message.CellForUpdate.Substring(0, message.CellForUpdate.IndexOf('!')); // Regex.Match(message.CellForUpdate, @"/^(.*?)\!/").Groups[0];
+                                var rownum = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
                                 errorList.Add
-                                    ($"У пользователя в таблице {row.Table } на листе {list} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
+                                    ($"У пользователя в таблице {message.Table } на листе {list} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
                                 continue;
                             }
 
-                            if (_phoneHelper.IsPhone(row.To))
+                            if (_phoneHelper.IsPhone(message.To))
                             {
-                                row.To = _phoneHelper.Format(row.To);
+                                message.To = _phoneHelper.Format(message.To);
                             }
-                            var phone = row.To;
-                            var sendMessageResult = await SendMessageAsync(row.SenderType, text, phone, _config.DbPath, _config.BotApiKey);
-                            if (sendMessageResult != null)
+
+                            var phone = message.To;
+                            var senderAgent = _senderAgentProvider.Resolve(message.SenderType);
+                            var sendResult = await senderAgent.Send(message);
+
+                            if (sendResult.IsSuccess)
                             {
-                                sendedList.Add(sendMessageResult);
-                                if (!rowsForUpdate.ContainsKey(row.Table))
-                                    rowsForUpdate[row.Table] = new List<IMessage>();
-                                rowsForUpdate[row.Table].Add(row);
+                                sendedList.Add(new SendedMessage() {
+                                    Message = message.Text,
+                                    To = message.To
+                                });
+                                if (!rowsForUpdate.ContainsKey(message.Table))
+                                    rowsForUpdate[message.Table] = new List<INeedSend>();
+                                rowsForUpdate[message.Table].Add(message);
                                 sendedMesageCount++;
+                            }
+                            else
+                            {
+                                errorList.Add($"Не удалось отправить сообщение пользователю {message.To}. Ошибка: {sendResult.Error}");
                             }
                         }
                     }
@@ -156,46 +169,6 @@ namespace Sender.Services
                 return false;
 
             return true;
-        }
-
-        private async Task<SendedMessage> SendMessageAsync(SenderType type, string text, string tgUser, string dbpath, string botKey)
-        {
-            ChatId destId = null;
-            var user = _userContext.Users.SingleOrDefault(
-                x => x.Username != null && x.Username.ToLower() == tgUser.ToLower()
-                || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(tgUser));
-            if (user == null)
-            {
-                _toFileLogger.LogDebug("До ");
-                _logger.LogError($"Не могу отправить сообщение пользователю {tgUser}, т.к.он не добавил бота в телеграмме");
-                return null;
-            }
-            if (type == SenderType.Telegram)
-            {
-                destId = new ChatId(user.ChatId);
-                var bot = new Telegram.Bot.TelegramBotClient(_configService.Config.BotApiKey);
-                await bot.SendTextMessageAsync(destId, text);
-            }
-            else {
-                var accountSid = _configService.Config.Twillo.Sid;
-                var authToken = _configService.Config.Twillo.Token;
-
-                TwilioClient.Init(accountSid, authToken);
-
-                var message = await MessageResource.CreateAsync(
-                    to: new PhoneNumber(user.PhoneNumber),
-                    from: new PhoneNumber(_configService.Config.Twillo.PhoneNumber),
-                    body: text);
-            }
-            
-
-            //var bot = new Telegram.Bot.TelegramBotClient(botKey);
-            //await bot.SendTextMessageAsync(destId, text);
-            return new SendedMessage()
-            {
-                To = _phoneHelper.Format(user.PhoneNumber),
-                Message = $"!(ОТПРАВЛЕНО SMS) {text}"
-            };
         }
     }
 }
