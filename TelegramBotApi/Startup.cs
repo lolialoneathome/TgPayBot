@@ -82,7 +82,7 @@ namespace TelegramBotApi
 
         private void setWebhook()
         {
-            Bot.Api.SetWebhookAsync($"{Configuration.GetValue<string>("WebHook")}/webhook/{Configuration.GetValue<string>("WebHookKey")}").Wait();
+            Bot.Api.SetWebhookAsync($"{Configuration.GetValue<string>("WebHook")}/webhook/{ Bot.ApiKey.Substring(Bot.ApiKey.IndexOf(':')+1) }").Wait();
         }
     }
 }
