@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
@@ -12,9 +14,11 @@ namespace TelegramBotApi.Controllers
     {
         protected readonly IUserMessageService _userMessageService;
         protected readonly IAdminMessageService _adminMessageService;
-        public WebHookController(IUserMessageService messageService, IAdminMessageService adminMessageService) {
+        protected readonly ILogger<WebHookController> _toFileLogger;
+        public WebHookController(IUserMessageService messageService, IAdminMessageService adminMessageService, ILogger<WebHookController> toFileLogger) {
             _userMessageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
             _adminMessageService = adminMessageService ?? throw new ArgumentNullException(nameof(adminMessageService));
+            _toFileLogger = toFileLogger;
         }
 
         [HttpPost]
@@ -34,14 +38,14 @@ namespace TelegramBotApi.Controllers
                     default:
                         await _userMessageService.ReceiveUnsupportedMessage(chatId, message.From.Username);
                         break;
-                        
                 }
+                return Ok();
             }
             catch (Exception err)
             {
-
-            }
-            return Ok();
+                _toFileLogger.LogError(err.Message);
+            };
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
 
         private async Task ReceivedtextMessage(Message message)
