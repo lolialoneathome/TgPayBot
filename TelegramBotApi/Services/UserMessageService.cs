@@ -139,7 +139,7 @@ namespace TelegramBotApi.Services
                 });
                 await _userContext.SaveChangesAsync();
 
-                await Bot.Api.SendTextMessageAsync(unauthUser.ChatId, "Авторизация пройдена");
+                await Bot.Api.SendTextMessageAsync(unauthUser.ChatId, _configService.Config.UserSubscribed);
                 _logger.LogAuth($"Пользователь ввёл корректный код и успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
             }
             else
