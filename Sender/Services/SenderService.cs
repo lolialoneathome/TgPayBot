@@ -82,11 +82,11 @@ namespace Sender.Services
                 if (!CheckEnable())
                 {
                     _toFileLogger.LogInformation("Sendidng stoped. Do nothing.");
-                    _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
+                    await _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
                     return;
                 }
                 _toFileLogger.LogInformation("Start sending...");
-                _logger.LogSystem($"Начинаю отправку сообщений...", null);
+                await _logger.LogSystem($"Начинаю отправку сообщений...", null);
 
                 if (!IsListValid())
                     throw new InvalidOperationException("Invalid config file!");
@@ -103,18 +103,32 @@ namespace Sender.Services
                             if (message.To == null)
                             {
                                 var list = message.CellForUpdate.Substring(0, message.CellForUpdate.IndexOf('!')); // Regex.Match(message.CellForUpdate, @"/^(.*?)\!/").Groups[0];
-                                var rownum = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
+                                var cellWithoutList = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
+                                var rownum = Regex.Match(cellWithoutList, @"\d+").Value;
+
                                 errorList.Add
                                     ($"У пользователя в таблице {message.Table } на листе {list} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
                                 continue;
                             }
 
+                            //TODO! Validation to separate service
                             if (_phoneHelper.IsPhone(message.To))
                             {
                                 message.To = _phoneHelper.Format(message.To);
                             }
 
-                            var phone = message.To;
+                            if (string.IsNullOrEmpty(message.Text))
+                            {
+                                var list = message.CellForUpdate.Substring(0, message.CellForUpdate.IndexOf('!')); // Regex.Match(message.CellForUpdate, @"/^(.*?)\!/").Groups[0];
+                                var cellWithoutList = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
+                                var rownum = Regex.Match(cellWithoutList, @"\d+").Value;
+
+                                errorList.Add
+                                    ($"D таблице {message.Table } на листе {list} в строке {rownum} пустое сообщение. Из этой строки ничего не отправляю!");
+                                continue;
+                            }
+
+
                             var senderAgent = _senderAgentProvider.Resolve(message.SenderType);
                             var sendResult = await senderAgent.Send(message);
 
@@ -143,23 +157,23 @@ namespace Sender.Services
                             var updateResult = await _messageDataSource.UpdateMessageStatus(item.Value);
                         }
                     }
-                    _logger.LogErrorList(errorList);
+                    await _logger.LogErrorList(errorList);
                     isErrorSended = true;
-                    _logger.LogSendedList(sendedList);
+                    await _logger.LogSendedList(sendedList);
                     isSuccessSended = true;
 
                 }
-                _logger.LogSystem($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
+                await _logger.LogSystem($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
                 _toFileLogger.LogInformation($"End sending. Message count: {sendedMesageCount}");
             }
             catch (Exception err)
             {
                 _toFileLogger.LogError(err, err.Message);
                 if (!isErrorSended)
-                    _logger.LogErrorList(errorList);
+                    await _logger.LogErrorList(errorList);
                 if (!isSuccessSended)
-                    _logger.LogSendedList(sendedList);
-                _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
+                    await _logger.LogSendedList(sendedList);
+                await _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
             }
         }
 
