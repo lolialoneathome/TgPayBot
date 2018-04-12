@@ -52,6 +52,7 @@ namespace TelegramBotApi
             );
 
             services.AddScoped<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
+            services.AddScoped<IMessageRoutingService, MessageRoutingService>();
             services.AddScoped<IUserMessageService, UserMessageService>();
             services.AddScoped<IAdminMessageService, AdminMessageService>();
             services.AddScoped<IPhoneNumberVerifier, FakePhoneNumberVerifier>();
@@ -82,7 +83,7 @@ namespace TelegramBotApi
 
         private void setWebhook()
         {
-            Bot.Api.SetWebhookAsync($"{Configuration.GetValue<string>("WebHook")}/webhook").Wait();
+            Bot.Api.SetWebhookAsync($"{Configuration.GetValue<string>("WebHook")}/webhook/{ Bot.ApiKey.Substring(Bot.ApiKey.IndexOf(':') + 1) }").Wait();
         }
     }
 }

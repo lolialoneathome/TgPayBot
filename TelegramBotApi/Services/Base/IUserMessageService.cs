@@ -9,7 +9,7 @@ namespace TelegramBotApi.Services
         Task ReceivedContact(long chatId, string username, string phone);
         Task Unsubscribe(long chatId, string username);
         Task ReceiveTextMessage(long chatId, string text, string username);
-        Task ReceiveVerifyPhonenumbercode(UnauthorizedUser unauthUser, string text);
+        Task ReceiveVerifyPhoneNumberCode(UnauthorizedUser unauthUser, string text);
         Task ReceiveUnsupportedMessage(long chatId, string from);
         Task ResetCode(long chatId);
     }

@@ -41,11 +41,11 @@ namespace TelegramBotApi.Services
             {
                 await Bot.Api.SendTextMessageAsync(chatId,
                     _configService.Config.AlreadySubscribedMessage);
-                _logger.LogAuth("Пользователь, который уже подписан, повторно отправил сообщение /start", _phoneHelper.Format(user.PhoneNumber));
+                await _logger.LogAuth("Пользователь, который уже подписан, повторно отправил сообщение /start", _phoneHelper.Format(user.PhoneNumber));
                 return;
             }
 
-            _logger.LogAuth("Пользователь запрашивает подписку", username);
+            await _logger.LogAuth("Пользователь запрашивает подписку", username);
             await Bot.Api.SendTextMessageAsync
                     (chatId,
                     _configService.Config.HelloMessage,
@@ -59,7 +59,7 @@ namespace TelegramBotApi.Services
             {
                 await Bot.Api.SendTextMessageAsync(chatId,
                     "Контакт уже есть в списке.");
-                _logger.LogAuth("Пользователь, который уже авторизован, повторно отправил номер телефона", _phoneHelper.Format(clearedPhoneNumber));
+                await _logger.LogAuth("Пользователь, который уже авторизован, повторно отправил номер телефона", _phoneHelper.Format(clearedPhoneNumber));
                 return;
             }
 
@@ -68,7 +68,7 @@ namespace TelegramBotApi.Services
                 await Bot.Api.SendTextMessageAsync(chatId,
                     "На ваш телефон отправлен код подтверждения, отправьте его сюда",
                     replyMarkup: ReplyMarkupResetCode);
-                _logger.LogAuth("Пользователь, который еше не авторизован, но которому уже был отправлен код, повторно отправил номер телефона",
+                await _logger.LogAuth("Пользователь, который еше не авторизован, но которому уже был отправлен код, повторно отправил номер телефона",
                     _phoneHelper.Format(clearedPhoneNumber));
                 return;
             }
@@ -86,7 +86,7 @@ namespace TelegramBotApi.Services
             await Bot.Api.SendTextMessageAsync(chatId,
                 "На ваш телефон отправлен код подтверждения, отправьте его сюда",
                 replyMarkup: ReplyMarkupResetCode);
-            _logger.LogAuth("Пользователю отправлен код", _phoneHelper.Format(clearedPhoneNumber));
+            await _logger.LogAuth("Пользователю отправлен код", _phoneHelper.Format(clearedPhoneNumber));
         }
 
         public async Task Unsubscribe(long chatId, string username)
@@ -96,13 +96,13 @@ namespace TelegramBotApi.Services
             {
                 await Bot.Api.SendTextMessageAsync
                     (chatId, "Подписка не активна.");
-                _logger.LogAuth("Пользователь, который не подписан, отправил сообщение /bye", username);
+                await _logger.LogAuth("Пользователь, который не подписан, отправил сообщение /bye", username);
                 return;
             }
             _userContext.Users.Remove(user);
-            _userContext.SaveChanges();
+            await _userContext.SaveChangesAsync();
 
-            _logger.LogAuth("Пользователь отписался", _phoneHelper.Format(user.PhoneNumber));
+            await _logger.LogAuth("Пользователь отписался", _phoneHelper.Format(user.PhoneNumber));
 
             await Bot.Api.SendTextMessageAsync
                 (chatId,
@@ -114,18 +114,18 @@ namespace TelegramBotApi.Services
             var unauthUser = _userContext.UnauthorizedUsers.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
             if (unauthUser != null)
             {
-                await ReceiveVerifyPhonenumbercode(unauthUser, text);
+                await ReceiveVerifyPhoneNumberCode(unauthUser, text);
                 return;
             }
 
-            _logger.LogIncoming($"Пришло сообщение: { text }", username);
+            await _logger.LogIncoming($"Пришло сообщение: { text }", username);
 
             await Bot.Api.SendTextMessageAsync
                 (chatId,
                 $"{_configService.Config.AutoresponseText}");
         }
 
-        public async Task ReceiveVerifyPhonenumbercode(UnauthorizedUser unauthUser, string code)
+        public async Task ReceiveVerifyPhoneNumberCode(UnauthorizedUser unauthUser, string code)
         {
             if (unauthUser.Code == code)
             {
@@ -139,22 +139,25 @@ namespace TelegramBotApi.Services
                 });
                 await _userContext.SaveChangesAsync();
 
-                await Bot.Api.SendTextMessageAsync(unauthUser.ChatId, _configService.Config.UserSubscribed);
-                _logger.LogAuth($"Пользователь ввёл корректный код и успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
+                await Bot.Api.SendTextMessageAsync
+                    (unauthUser.ChatId, 
+                    _configService.Config.UserSubscribed, 
+                    replyMarkup: ReplyMarkupRemoveKeyboard);
+                await _logger.LogAuth($"Пользователь ввёл корректный код и успешно авторизовался", _phoneHelper.Format(unauthUser.PhoneNumber));
             }
             else
             {
                 await Bot.Api.SendTextMessageAsync
                                     (unauthUser.ChatId,
                                     "Некорректный код");
-                _logger.LogAuth($"Пользователь ввел некорректный код. Отправлено на телефон: {unauthUser.Code}, пользователь ввел {code}",
+                await _logger.LogAuth($"Пользователь ввел некорректный код. Отправлено на телефон: {unauthUser.Code}, пользователь ввел {code}",
                     _phoneHelper.Format(unauthUser.PhoneNumber));
             }
         }
 
         public async Task ReceiveUnsupportedMessage(long chatId, string from)
         {
-            _logger.LogIncoming($"Пришло сообщение неподдерживаемого типа", from);
+            await _logger.LogIncoming($"Пришло сообщение неподдерживаемого типа", from);
             await Bot.Api.SendTextMessageAsync
                         (chatId,
                         _configService.Config.UnsupportedMessageType);
@@ -170,7 +173,7 @@ namespace TelegramBotApi.Services
                 await _userContext.SaveChangesAsync();
                 await Bot.Api.SendTextMessageAsync
                             (chatId, "Код отправлен повторно", replyMarkup: ReplyMarkupResetCode);
-                _logger.LogAuth($"Пользователь запросил код повторно", _phoneHelper.Format(unauthUser.PhoneNumber));
+                await _logger.LogAuth($"Пользователь запросил код повторно", _phoneHelper.Format(unauthUser.PhoneNumber));
                 return;
             }
 
@@ -179,13 +182,13 @@ namespace TelegramBotApi.Services
             {
                 await Bot.Api.SendTextMessageAsync
                             (chatId, _configService.Config.AlreadySubscribedMessage, replyMarkup: ReplyMarkupResetCode);
-                _logger.LogAuth($"Пользователь запросил код повторно, но он уже авторизован в системе", _phoneHelper.Format(unauthUser.PhoneNumber));
+                await _logger.LogAuth($"Пользователь запросил код повторно, но он уже авторизован в системе", _phoneHelper.Format(user.PhoneNumber));
                 return;
             }
 
             await Bot.Api.SendTextMessageAsync
                             (chatId, _configService.Config.HelloMessage, replyMarkup: phoneNumberKeyboard);
-            _logger.LogAuth($"Неизвестный пользователь отправил запрос на сброс кода", _phoneHelper.Format(unauthUser.PhoneNumber));
+            await _logger.LogAuth($"Неизвестный пользователь отправил запрос на сброс кода", _phoneHelper.Format(unauthUser.PhoneNumber));
         }
 
         private ReplyKeyboardMarkup phoneNumberKeyboard = new ReplyKeyboardMarkup
@@ -213,6 +216,8 @@ namespace TelegramBotApi.Services
             ResizeKeyboard = true,
             OneTimeKeyboard = true
         };
+
+        private ReplyKeyboardRemove ReplyMarkupRemoveKeyboard = new ReplyKeyboardRemove();
 
     }
 }

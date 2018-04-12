@@ -46,7 +46,7 @@ namespace TelegramBotApi.Services
             var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(user.PhoneNumber);
             if (_configService.Config.Admins.Contains(clearedPhoneNumber))
             {
-                _logger.LogIncoming($"Запрос списка пользователей от администратора", _phoneHelper.Format(user.PhoneNumber));
+                await _logger.LogIncoming($"Запрос списка пользователей от администратора", _phoneHelper.Format(user.PhoneNumber));
 
                 var result = string.Join("\n", _userContext.Users.Select(x => $"{x.Username} {_phoneHelper.Format(x.PhoneNumber)}").ToArray());
                 await Bot.Api.SendTextMessageAsync
@@ -54,7 +54,7 @@ namespace TelegramBotApi.Services
                     $"Список активных пользователей:\n{result}");
                 return;
             }
-            _logger.LogIncoming($"Попытка запросить пользователей из под учетки, у которой нет админских прав", _phoneHelper.Format(user.PhoneNumber));
+            await _logger.LogIncoming($"Попытка запросить пользователей из под учетки, у которой нет админских прав", _phoneHelper.Format(user.PhoneNumber));
         }
 
         public async Task StartSending(long chatId)
@@ -67,7 +67,7 @@ namespace TelegramBotApi.Services
 
                 if (state.IsEnabled == 1)
                 {
-                    _logger.LogIncoming($"Попытка включить рассылку, которая уже работает", _phoneHelper.Format(user.PhoneNumber));
+                    await _logger.LogIncoming($"Попытка включить рассылку, которая уже работает", _phoneHelper.Format(user.PhoneNumber));
 
                     await Bot.Api.SendTextMessageAsync
                         (chatId,
@@ -79,7 +79,7 @@ namespace TelegramBotApi.Services
                 _stateContext.States.Update(state);
                 _stateContext.SaveChanges();
 
-                _logger.LogIncoming($"Рассылка возобновлена", _phoneHelper.Format(user.PhoneNumber));
+                await _logger.LogIncoming($"Рассылка возобновлена", _phoneHelper.Format(user.PhoneNumber));
                 await Bot.Api.SendTextMessageAsync
                     (chatId,
                     $"Рассылка возобновлена");
@@ -90,7 +90,7 @@ namespace TelegramBotApi.Services
                     (chatId,
                     $":) ");
 
-            _logger.LogIncoming($"Попытка включить рассылку из под учетки, у которой нет прав", _phoneHelper.Format(user.PhoneNumber));
+            await _logger.LogIncoming($"Попытка включить рассылку из под учетки, у которой нет прав", _phoneHelper.Format(user.PhoneNumber));
         }
 
         public async Task StopSending(long chatId)
@@ -103,7 +103,7 @@ namespace TelegramBotApi.Services
 
                 if (state.IsEnabled == -1)
                 {
-                    _logger.LogIncoming($"Попытка выключить рассылку, которая уже остановлена", _phoneHelper.Format(user.PhoneNumber));
+                    await _logger.LogIncoming($"Попытка выключить рассылку, которая уже остановлена", _phoneHelper.Format(user.PhoneNumber));
 
                     await Bot.Api.SendTextMessageAsync
                         (chatId,
@@ -115,7 +115,7 @@ namespace TelegramBotApi.Services
                 _stateContext.States.Update(state);
                 _stateContext.SaveChanges();
 
-                _logger.LogIncoming($"Рассылка остановлена", _phoneHelper.Format(user.PhoneNumber));
+                await _logger.LogIncoming($"Рассылка остановлена", _phoneHelper.Format(user.PhoneNumber));
                 await Bot.Api.SendTextMessageAsync
                     (chatId,
                     $"Рассылка остановлена");
@@ -126,7 +126,7 @@ namespace TelegramBotApi.Services
                     (chatId,
                     $":) ");
 
-            _logger.LogIncoming($"Попытка выключить рассылку из под учетки, у которой нет прав", _phoneHelper.Format(user.PhoneNumber));
+            await _logger.LogIncoming($"Попытка выключить рассылку из под учетки, у которой нет прав", _phoneHelper.Format(user.PhoneNumber));
         }
     }
 }
