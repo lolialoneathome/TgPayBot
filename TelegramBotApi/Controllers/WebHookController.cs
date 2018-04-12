@@ -45,7 +45,7 @@ namespace TelegramBotApi.Controllers
             {
                 _toFileLogger.LogError(err.Message);
             };
-            return StatusCode(StatusCodes.Status500InternalServerError);
+            return Ok();
         }
 
         private async Task ReceivedtextMessage(Message message)
