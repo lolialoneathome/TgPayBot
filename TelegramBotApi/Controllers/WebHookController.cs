@@ -45,8 +45,8 @@ namespace TelegramBotApi.Controllers
             catch (Exception err)
             {
                 _toFileLogger.LogError(err.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError);
             };
-            return Ok();
         }
 
         [Route("healthcheck")]
