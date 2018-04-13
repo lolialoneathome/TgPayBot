@@ -12,10 +12,10 @@ namespace TelegramBotApi.Services
 {
     public class TwilloPhoneNumberVerifier : IPhoneNumberVerifier
     {
-        private readonly Config _config;
+        private readonly IConfigService _configService;
         protected readonly IPhoneHelper _phoneHelper;
-        public TwilloPhoneNumberVerifier(Config config, IPhoneHelper phoneHelper) {
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+        public TwilloPhoneNumberVerifier(IConfigService configService, IPhoneHelper phoneHelper) {
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
         }
 
@@ -32,14 +32,14 @@ namespace TelegramBotApi.Services
         }
 
         private async Task SendSms(string phone, string code) {
-            var accountSid = _config.Twillo.Sid;
-            var authToken = _config.Twillo.Token;
+            var accountSid = _configService.Config.Twillo.Sid;
+            var authToken = _configService.Config.Twillo.Token;
 
             TwilioClient.Init(accountSid, authToken);
 
             var message = await MessageResource.CreateAsync(
                 to: new PhoneNumber(phone),
-                from: new PhoneNumber(_config.Twillo.PhoneNumber),
+                from: new PhoneNumber(_configService.Config.Twillo.PhoneNumber),
                 body: $"Код подтверждения: {code}");
         }
     }
