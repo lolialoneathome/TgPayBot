@@ -55,7 +55,7 @@ namespace TelegramBotApi
             services.AddScoped<IMessageRoutingService, MessageRoutingService>();
             services.AddScoped<IUserMessageService, UserMessageService>();
             services.AddScoped<IAdminMessageService, AdminMessageService>();
-            services.AddScoped<IPhoneNumberVerifier, FakePhoneNumberVerifier>();
+            services.AddScoped<IPhoneNumberVerifier, TwilloPhoneNumberVerifier>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
