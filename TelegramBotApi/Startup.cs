@@ -36,7 +36,7 @@ namespace TelegramBotApi
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
             services.AddSingleton<Bot>();
             services.AddScoped<ITelegramBotClient, TelegramBotClient>();
-            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
+            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetValue<string>("DbPath")));
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>(p => new SheetsServiceProvider(
