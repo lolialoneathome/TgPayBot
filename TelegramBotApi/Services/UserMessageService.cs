@@ -55,7 +55,7 @@ namespace TelegramBotApi.Services
         public async Task ReceivedContact(long chatId, string username, string phone)
         {
             var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(phone);
-            if (_userContext.Users.Any(x => x.PhoneNumber == clearedPhoneNumber))
+            if (_userContext.Users.Any(x => x.ChatId == chatId.ToString()))
             {
                 await Bot.Api.SendTextMessageAsync(chatId,
                     "Контакт уже есть в списке.");
@@ -63,8 +63,8 @@ namespace TelegramBotApi.Services
                 return;
             }
 
-            if (_userContext.UnauthorizedUsers.Any(x => x.PhoneNumber == clearedPhoneNumber))
-            {
+            if (_userContext.UnauthorizedUsers.Any(x => x.ChatId == chatId.ToString()))
+            { 
                 await Bot.Api.SendTextMessageAsync(chatId,
                     "На ваш телефон отправлен код подтверждения, отправьте его сюда",
                     replyMarkup: ReplyMarkupResetCode);
