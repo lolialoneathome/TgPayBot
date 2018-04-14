@@ -11,22 +11,19 @@ namespace TelegramBotApi.Services
 {
     public class AdminMessageService : IAdminMessageService
     {
-        protected readonly UserContext _userContext;
-        protected readonly StateContext _stateContext;
+        protected readonly SqlliteDbContext _dbContext;
         protected readonly IBotLogger _logger;
         protected readonly IPhoneHelper _phoneHelper;
         protected readonly ILogger<AdminMessageService> _toFileLogger;
         protected readonly IConfigService _configService;
         public AdminMessageService(
-            UserContext userContext,
-            StateContext stateContext,
+            SqlliteDbContext dbContext,
             IBotLogger logger,
             IPhoneHelper phoneHelper,
             ILogger<AdminMessageService> toFileLogger,
             IConfigService configService)
         {
-            _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
-            _stateContext = stateContext ?? throw new ArgumentNullException(nameof(stateContext));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
@@ -35,7 +32,7 @@ namespace TelegramBotApi.Services
 
         public async Task GetUsers(long chatId)
         {
-            var user = _userContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
+            var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
             if (user == null)
             {
                 await Bot.Api.SendTextMessageAsync
@@ -48,7 +45,7 @@ namespace TelegramBotApi.Services
             {
                 await _logger.LogIncoming($"Запрос списка пользователей от администратора", _phoneHelper.Format(user.PhoneNumber));
 
-                var result = string.Join("\n", _userContext.Users.Select(x => $"{x.Username} {_phoneHelper.Format(x.PhoneNumber)}").ToArray());
+                var result = string.Join("\n", _dbContext.Users.Select(x => $"{x.Username} {_phoneHelper.Format(x.PhoneNumber)}").ToArray());
                 await Bot.Api.SendTextMessageAsync
                     (chatId,
                     $"Список активных пользователей:\n{result}");
@@ -59,11 +56,11 @@ namespace TelegramBotApi.Services
 
         public async Task StartSending(long chatId)
         {
-            var user = _userContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
+            var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
             var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(user.PhoneNumber);
             if (_configService.Config.Admins.Contains(clearedPhoneNumber))
             {
-                var state = _stateContext.States.First();
+                var state = _dbContext.States.First();
 
                 if (state.IsEnabled == 1)
                 {
@@ -76,8 +73,8 @@ namespace TelegramBotApi.Services
                 }
 
                 state.IsEnabled = 1;
-                _stateContext.States.Update(state);
-                _stateContext.SaveChanges();
+                _dbContext.States.Update(state);
+                _dbContext.SaveChanges();
 
                 await _logger.LogIncoming($"Рассылка возобновлена", _phoneHelper.Format(user.PhoneNumber));
                 await Bot.Api.SendTextMessageAsync
@@ -95,11 +92,11 @@ namespace TelegramBotApi.Services
 
         public async Task StopSending(long chatId)
         {
-            var user = _userContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
+            var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
             var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(user.PhoneNumber);
             if (_configService.Config.Admins.Contains(clearedPhoneNumber))
             {
-                var state = _stateContext.States.First();
+                var state = _dbContext.States.First();
 
                 if (state.IsEnabled == -1)
                 {
@@ -112,8 +109,8 @@ namespace TelegramBotApi.Services
                 }
 
                 state.IsEnabled = -1;
-                _stateContext.States.Update(state);
-                _stateContext.SaveChanges();
+                _dbContext.States.Update(state);
+                _dbContext.SaveChanges();
 
                 await _logger.LogIncoming($"Рассылка остановлена", _phoneHelper.Format(user.PhoneNumber));
                 await Bot.Api.SendTextMessageAsync

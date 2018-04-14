@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PayBot.Configuration;
 using Sender.DataSource.Base;
-using Sender.DataSource.GoogleTabledataSource;
 using Sqllite;
 using System;
 using System.Collections.Generic;
@@ -9,13 +8,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Telegram.Bot.Types;
-using Twilio;
-using Twilio.Rest.Api.V2010.Account;
-using Twilio.Types;
 using Utils;
 using Utils.Logger;
 
+//TODO! Refactoring require
 namespace Sender.Services
 {
     public class SenderService : ISenderService
@@ -26,8 +22,7 @@ namespace Sender.Services
         protected readonly IDataSource _messageDataSource;
 
         protected readonly IConfigService _configService;
-        protected readonly UserContext _userContext;
-        protected readonly StateContext _stateContext;
+        protected readonly SqlliteDbContext _dbContext;
         protected readonly ISenderAgentProvider _senderAgentProvider;
         public SenderService
             (IConfigService configService,
@@ -35,12 +30,10 @@ namespace Sender.Services
             IPhoneHelper phoneHelper,
             ILogger<SenderService> toFileLogger,
             IDataSource messageDataSource,
-            UserContext userContext,
-            StateContext stateContext,
+            SqlliteDbContext dbContext,
             ISenderAgentProvider senderAgentProvider)
         {
-            _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
-            _stateContext = stateContext ?? throw new ArgumentNullException(nameof(stateContext));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
@@ -124,7 +117,7 @@ namespace Sender.Services
                                 var rownum = Regex.Match(cellWithoutList, @"\d+").Value;
 
                                 errorList.Add
-                                    ($"D таблице {message.Table } на листе {list} в строке {rownum} пустое сообщение. Из этой строки ничего не отправляю!");
+                                    ($"В таблице {message.Table } на листе {list} в строке {rownum} пустое сообщение. Из этой строки ничего не отправляю!");
                                 continue;
                             }
 
@@ -179,7 +172,7 @@ namespace Sender.Services
 
         private bool CheckEnable()
         {
-            if (_stateContext.States.First().IsEnabled == -1)
+            if (_dbContext.States.First().IsEnabled == -1)
                 return false;
 
             return true;

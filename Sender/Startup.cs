@@ -37,8 +37,7 @@ namespace Sender
             services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
 
-            services.AddDbContext<UserContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
-            services.AddDbContext<StateContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
+            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
 
             services.AddTransient<IPhoneHelper, PhoneHelper>();
             services.AddTransient<ISenderService, SenderService>();

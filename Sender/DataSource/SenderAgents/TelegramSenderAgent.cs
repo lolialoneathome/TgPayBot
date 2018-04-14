@@ -12,18 +12,18 @@ namespace Sender.DataSource.SenderAgents
     public class TelegramSenderAgent : ISenderAgent
     {
         protected readonly IConfigService _configService;
-        protected readonly UserContext _userContext;
+        protected readonly SqlliteDbContext _dbContext;
         protected readonly IPhoneHelper _phoneHelper;
-        public TelegramSenderAgent(IConfigService configService, UserContext userContext, IPhoneHelper phoneHelper) {
+        public TelegramSenderAgent(IConfigService configService, SqlliteDbContext dbContext, IPhoneHelper phoneHelper) {
             _configService = configService ?? throw new ArgumentNullException();
-        _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _phoneHelper = phoneHelper;
     }
 
         public async Task<MessageSendResult> Send(INeedSend message)
         {
             ChatId destId = null;
-            var user = _userContext.Users.SingleOrDefault(
+            var user = _dbContext.Users.SingleOrDefault(
                 x => x.Username != null && x.Username.ToLower() == message.To.ToLower()
                 || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(message.To.ToLower()));
             if (user == null)

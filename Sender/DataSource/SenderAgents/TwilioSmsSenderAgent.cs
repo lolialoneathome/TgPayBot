@@ -14,12 +14,12 @@ namespace Sender.DataSource.SenderAgents
     public class TwilioSmsSenderAgent : ISenderAgent
     {
         protected readonly IConfigService _configService;
-        protected readonly UserContext _userContext;
+        protected readonly SqlliteDbContext _dbContext;
         protected readonly IPhoneHelper _phoneHelper;
-        public TwilioSmsSenderAgent(IConfigService configService, UserContext userContext, IPhoneHelper phoneHelper)
+        public TwilioSmsSenderAgent(IConfigService configService, SqlliteDbContext dbContext, IPhoneHelper phoneHelper)
         {
             _configService = configService ?? throw new ArgumentNullException();
-            _userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _phoneHelper = phoneHelper;
         }
 

@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using Sqllite;
@@ -41,8 +36,7 @@ namespace TelegramBotApi
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
             services.AddSingleton<Bot>();
             services.AddScoped<ITelegramBotClient, TelegramBotClient>();
-            services.AddDbContext<UserContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
-            services.AddDbContext<StateContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
+            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite("Data Source=../Db/users.db"));
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>(p => new SheetsServiceProvider(
