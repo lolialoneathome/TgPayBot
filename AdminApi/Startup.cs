@@ -29,7 +29,7 @@ namespace AdminApi
         {
             services.AddMvc();
             services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
-            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("Sqllite")));
+            services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("users")));
             services.AddCors();
             services.AddAutoMapper();
         }

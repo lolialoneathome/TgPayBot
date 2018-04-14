@@ -13,10 +13,5 @@ namespace Sqllite
         public DbSet<User> Users { get; set; }
         public DbSet<UnauthorizedUser> UnauthorizedUsers { get; set; }
         public DbSet<State> States { get; set; }
-
-        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        //{
-        //    optionsBuilder.UseSqlite("Data Source=users.db");
-        //}
     }
 }
