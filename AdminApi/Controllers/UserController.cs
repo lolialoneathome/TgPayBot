@@ -31,7 +31,7 @@ namespace AdminApi.Controllers
                     Total = _dbContext.Users.Count(),
                     List = list
                 };
-                return Ok(list);
+                return Ok(result);
             }
             catch (Exception err)
             {
