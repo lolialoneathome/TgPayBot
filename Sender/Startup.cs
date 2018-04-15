@@ -15,7 +15,9 @@ using Sender.DataSource.SenderAgents;
 using Sender.Quartz;
 using Sender.Services;
 using Sqllite;
+using Sqllite.Logger;
 using Utils;
+using Utils.DbLogger;
 using Utils.Logger;
 
 namespace Sender
@@ -38,10 +40,12 @@ namespace Sender
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
 
             services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("users")));
+            services.AddDbContext<LogDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("logs")));
 
             services.AddTransient<IPhoneHelper, PhoneHelper>();
             services.AddTransient<ISenderService, SenderService>();
             services.AddTransient<IBotLogger, ToGoogleTableBotLogger>();
+            services.AddTransient<INewBotLogger, NewBotLogger>();
             services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
             services.AddTransient<ISheetsServiceProvider, SheetsServiceProvider>( p => new SheetsServiceProvider(
                 p.GetService<IConfigService>(), 

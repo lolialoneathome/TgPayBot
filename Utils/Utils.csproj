@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Configuration\Configuration.csproj" />
+    <ProjectReference Include="..\Sqllite\Sqllite.csproj" />
   </ItemGroup>
 
 </Project>

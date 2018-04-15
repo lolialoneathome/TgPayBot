@@ -2,6 +2,7 @@
 using PayBot.Configuration;
 using Sender.DataSource.Base;
 using Sqllite;
+using Sqllite.Logger;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Utils;
+using Utils.DbLogger;
 using Utils.Logger;
 
 //TODO! Refactoring require
@@ -24,6 +26,7 @@ namespace Sender.Services
         protected readonly IConfigService _configService;
         protected readonly SqlliteDbContext _dbContext;
         protected readonly ISenderAgentProvider _senderAgentProvider;
+        protected readonly INewBotLogger _newLogger;
         public SenderService
             (IConfigService configService,
             IBotLogger logger,
@@ -31,7 +34,8 @@ namespace Sender.Services
             ILogger<SenderService> toFileLogger,
             IDataSource messageDataSource,
             SqlliteDbContext dbContext,
-            ISenderAgentProvider senderAgentProvider)
+            ISenderAgentProvider senderAgentProvider,
+            INewBotLogger newLogger)
         {
             _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,6 +44,7 @@ namespace Sender.Services
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
             _messageDataSource = messageDataSource ?? throw new ArgumentNullException(nameof(messageDataSource));
             _senderAgentProvider = senderAgentProvider ?? throw new ArgumentNullException(nameof(senderAgentProvider));
+            _newLogger= newLogger ?? throw new ArgumentNullException(nameof(newLogger));
         }
 
         protected Config _config => _configService.Config;
@@ -75,15 +80,19 @@ namespace Sender.Services
                 if (!CheckEnable())
                 {
                     _toFileLogger.LogInformation("Sendidng stoped. Do nothing.");
-                    await _logger.LogSended($"Рассылка остановлена, ничего не отправляю", null);
+                    await _logger.LogSended(LogConst.SendedStopedDoNothing, null);
+                    await _newLogger.LogByType(MessageTypes.System, LogConst.SendedStopedDoNothing);
                     return;
                 }
                 _toFileLogger.LogInformation("Start sending...");
-                await _logger.LogSystem($"Начинаю отправку сообщений...", null);
+                await _logger.LogSystem(LogConst.StartSending, null);
+                await _newLogger.LogByType(MessageTypes.System, LogConst.StartSending);
 
-                if (!IsListValid())
-                    throw new InvalidOperationException("Invalid config file!");
-
+                if (!IsListValid()) {
+                    await _logger.LogError(LogConst.InvalidConfig);
+                    await _newLogger.LogByType(MessageTypes.Errors, LogConst.InvalidConfig);
+                    return;
+                }
                 var rows = await _messageDataSource.GetMessages(_config);
                 var sendedMesageCount = 0;
                 if (rows != null)
@@ -98,9 +107,9 @@ namespace Sender.Services
                                 var list = message.CellForUpdate.Substring(0, message.CellForUpdate.IndexOf('!')); // Regex.Match(message.CellForUpdate, @"/^(.*?)\!/").Groups[0];
                                 var cellWithoutList = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
                                 var rownum = Regex.Match(cellWithoutList, @"\d+").Value;
-
-                                errorList.Add
-                                    ($"У пользователя в таблице {message.Table } на листе {list} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!");
+                                var errNoPhone = $"У пользователя в таблице {message.Table } на листе {list} в строке {rownum} не указан номер телефона, сообщение НЕ отправлено!";
+                                errorList.Add(errNoPhone);
+                                await _newLogger.LogByType(MessageTypes.Errors, errNoPhone);
                                 continue;
                             }
 
@@ -115,12 +124,11 @@ namespace Sender.Services
                                 var list = message.CellForUpdate.Substring(0, message.CellForUpdate.IndexOf('!')); // Regex.Match(message.CellForUpdate, @"/^(.*?)\!/").Groups[0];
                                 var cellWithoutList = message.CellForUpdate.Substring(message.CellForUpdate.IndexOf('!') + 1, message.CellForUpdate.Length - list.Length - 1);// Regex.Match(message.CellForUpdate, @"/[^!]*$/").Groups[0];
                                 var rownum = Regex.Match(cellWithoutList, @"\d+").Value;
-
-                                errorList.Add
-                                    ($"В таблице {message.Table } на листе {list} в строке {rownum} пустое сообщение. Из этой строки ничего не отправляю!");
+                                var errEmptyMessage = $"В таблице {message.Table } на листе {list} в строке {rownum} пустое сообщение. Из этой строки ничего не отправляю!";
+                                errorList.Add(errEmptyMessage);
+                                await _newLogger.LogByType(MessageTypes.Errors, errEmptyMessage);
                                 continue;
                             }
-
 
                             var senderAgent = _senderAgentProvider.Resolve(message.SenderType);
                             var sendResult = await senderAgent.Send(message);
@@ -138,7 +146,9 @@ namespace Sender.Services
                             }
                             else
                             {
-                                errorList.Add($"Не удалось отправить сообщение пользователю {message.To}. Ошибка: {sendResult.Error}");
+                                var sendErr = $"Не удалось отправить сообщение пользователю {message.To}. Ошибка: {sendResult.Error}";
+                                errorList.Add(sendErr);
+                                await _newLogger.LogByType(MessageTypes.Errors, sendErr);
                             }
                         }
                     }
@@ -156,7 +166,9 @@ namespace Sender.Services
                     isSuccessSended = true;
 
                 }
-                await _logger.LogSystem($"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}", null);
+                var sendingEnded = $"Отправка сообщений закончена. Сообщений отправлено: {sendedMesageCount}";
+                await _logger.LogSystem(sendingEnded, null);
+                await _newLogger.LogByType(MessageTypes.System, sendingEnded);
                 _toFileLogger.LogInformation($"End sending. Message count: {sendedMesageCount}");
             }
             catch (Exception err)
@@ -166,13 +178,17 @@ namespace Sender.Services
                     await _logger.LogErrorList(errorList);
                 if (!isSuccessSended)
                     await _logger.LogSendedList(sendedList);
-                await _logger.LogError($"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}");
+                var errToLog = $"Произошла непредвиденная ошибка во время отправки сообщений! Подробнее: {err.Message} . Stack Trace : {err.StackTrace}";
+                await _newLogger.LogByType(MessageTypes.SystemErrors, errToLog);
+                await _logger.LogError(errToLog);
             }
         }
 
         private bool CheckEnable()
         {
-            if (_dbContext.States.First().IsEnabled == -1)
+            var state = _dbContext.States.SingleOrDefault();
+            _dbContext.ReloadEntity(state);
+            if (state.IsEnabled == -1)
                 return false;
 
             return true;

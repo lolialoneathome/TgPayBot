@@ -9,16 +9,17 @@ namespace Sender.Quartz
     internal class SendPaymentsInfoJob : IJob
     {
         protected readonly ISenderService _senderService;
-
-        public SendPaymentsInfoJob(ISenderService senderService)
+        protected readonly IConfigService _configService;
+        public SendPaymentsInfoJob(ISenderService senderService, IConfigService configService)
         {
-            _senderService = senderService;
+            _senderService = senderService ?? throw new ArgumentNullException(nameof(senderService));
+            _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         }
 
         public async Task Execute(IJobExecutionContext context)
         {
             await _senderService.Process(context.CancellationToken);
-            var config = new FromFileConfigService("../conf/config.json").Config; //TODO! This shit MUST be changed
+            var config = _configService.Config;
             var oldTrigger = await context.Scheduler.GetTrigger(new TriggerKey("SendPaymentsTrigger", "group1"));
 
             // obtain a builder that would produce the trigger
@@ -29,7 +30,6 @@ namespace Sender.Quartz
                     .RepeatForever()).Build();
 
             await context.Scheduler.RescheduleJob(oldTrigger.Key, newTrigger);
-            Console.WriteLine("Trigger fired... changed interval to {0}", config.SenderTimeout);
         }
     }
 }
