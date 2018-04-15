@@ -139,6 +139,7 @@ namespace Sender.Services
                                     Message = message.Text,
                                     To = message.To
                                 });
+                                await _newLogger.LogByType(MessageTypes.Outgoing, $"На {message.SenderType} : {message.Text}", _phoneHelper.Clear(message.To));
                                 if (!rowsForUpdate.ContainsKey(message.Table))
                                     rowsForUpdate[message.Table] = new List<INeedSend>();
                                 rowsForUpdate[message.Table].Add(message);
