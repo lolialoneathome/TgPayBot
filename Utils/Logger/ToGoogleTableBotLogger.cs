@@ -77,6 +77,7 @@ namespace Utils.Logger
             catch (Exception err)
             {
                 _toFileLogger.LogError($"CANNOT LOG TO GOOGLE TABLE. TYPE: SYSTEM. ERROR_STR: {action} USER: {user} ERROR: {err.Message}");
+                _toFileLogger.LogError(err, err.Message);
             }
         }
 
