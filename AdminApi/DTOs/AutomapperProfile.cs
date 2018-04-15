@@ -19,6 +19,7 @@ namespace AdminApi.DTOs
 
             CreateMap<LogMessage, LogMessageDto>()
                 .ForMember(x => x.Date, opts => opts.MapFrom(src => src.Date.ToString("dd.MM.yy HH:mm:ss")))
+                .ForMember(x => x.PhoneNumber, opts => opts.MapFrom(src => _phoneHelper.Format(src.PhoneNumber)))
                 .ForMember(x => x.Type, opts => opts.MapFrom(src => src.Type.ToString()));
         }
     }
