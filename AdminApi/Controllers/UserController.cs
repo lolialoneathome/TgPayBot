@@ -1,6 +1,7 @@
 ﻿using AdminApi.DTOs;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Sqllite;
 using System;
 using System.Collections.Generic;
@@ -22,13 +23,13 @@ namespace AdminApi.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetList([FromQuery]int limit, [FromQuery]int offcet)
+        public async Task<IActionResult> GetList([FromQuery]int limit, [FromQuery]int offset)
         {
             try
             {
-                var list = _mapper.Map<IEnumerable<UserDto>>(_dbContext.Users.Skip(offcet).Take(limit).ToList());
+                var list = _mapper.Map<IEnumerable<UserDto>>(await _dbContext.Users.Skip(offset).Take(limit).ToListAsync());
                 var result = new UserListDto() {
-                    Total = _dbContext.Users.Count(),
+                    Total = await _dbContext.Users.CountAsync(),
                     List = list
                 };
                 return Ok(result);
