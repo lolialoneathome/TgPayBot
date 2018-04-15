@@ -130,15 +130,14 @@ namespace TelegramBotApi.Services
             }
 
             string from = username;
-            var user = _dbContext.UnauthorizedUsers.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
+            var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
             if (user != null)
-                from = _phoneHelper.Format(user.PhoneNumber);
-
+                from = user.PhoneNumber;
             await Bot.Api.SendTextMessageAsync
                 (chatId,
                 $"{_configService.Config.AutoresponseText}");
 
-            await _logger.LogIncoming($"{LogConst.MessageReceived}: { text }", username);
+            await _logger.LogIncoming($"{LogConst.MessageReceived}: { text }", from);
             await _newLogger.LogByType(MessageTypes.Incoming, $"{LogConst.MessageReceived}: { text }", from);
         }
 
