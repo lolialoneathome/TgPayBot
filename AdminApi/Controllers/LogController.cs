@@ -7,6 +7,7 @@ using Sqllite.Logger;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Utils;
 
 namespace AdminApi.Controllers
 {
@@ -15,9 +16,11 @@ namespace AdminApi.Controllers
     {
         protected readonly IReadLogService _logService;
         protected readonly ILogger<LogController> _toFileLogger;
-        public LogController(IReadLogService logService, ILogger<LogController> toFileLogger) {
+        protected readonly IPhoneHelper _phoneHelper;
+        public LogController(IReadLogService logService, ILogger<LogController> toFileLogger, IPhoneHelper phoneHelper) {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
+            _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
         }
 
         [HttpGet("auth")]
@@ -132,6 +135,8 @@ namespace AdminApi.Controllers
         {
             try
             {
+                if (_phoneHelper.IsPhone(phone))
+                    phone = _phoneHelper.Clear(phone);
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotalByUserPhone(phone),
