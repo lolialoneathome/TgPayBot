@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using PayBot.Configuration;
 using Sqllite;
+using Sqllite.Logger;
 using Telegram.Bot;
 using TelegramBotApi.Services;
 using Utils;
@@ -37,7 +38,10 @@ namespace TelegramBotApi
             services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
             services.AddSingleton<Bot>();
             services.AddScoped<ITelegramBotClient, TelegramBotClient>();
+
             services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("users")));
+            services.AddDbContext<LogDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("logs")));
+
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
             services.AddScoped<INewBotLogger, NewBotLogger>();
