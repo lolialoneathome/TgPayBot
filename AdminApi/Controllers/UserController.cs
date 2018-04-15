@@ -22,11 +22,11 @@ namespace AdminApi.Controllers
         }
 
         [HttpGet("list")]
-        public async Task<IActionResult> GetList()
+        public async Task<IActionResult> GetList([FromQuery]int limit, [FromQuery]int offcet)
         {
             try
             {
-                return Ok(_mapper.Map<IEnumerable<UserDto>>(_dbContext.Users.ToList()));
+                return Ok(_mapper.Map<IEnumerable<UserDto>>(_dbContext.Users.Skip(offcet).Take(limit).ToList()));
             }
             catch (Exception err)
             {
