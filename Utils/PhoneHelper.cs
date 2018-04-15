@@ -8,7 +8,7 @@ namespace Utils
     {
         string Format(string phone);
         bool IsPhone(string phone);
-        string GetOnlyNumerics(string phone);
+        string Clear(string phone);
         string GetPhoneNumberForTwilio(string phone);
     }
     public class PhoneHelper : IPhoneHelper
@@ -27,12 +27,12 @@ namespace Utils
             return Regex.IsMatch(phone, @"^((1-)?\d{3}-)?\d{3}-\d{4}$");
         }
 
-        public string GetOnlyNumerics(string phone) {
+        public string Clear(string phone) {
             return string.Join("", phone.Where(c => Char.IsDigit(c)).ToArray());
         }
 
         public string GetPhoneNumberForTwilio(string phone) {
-            var clearedPhone = GetOnlyNumerics(phone);
+            var clearedPhone = Clear(phone);
             return $"+{clearedPhone}";
         }
     }

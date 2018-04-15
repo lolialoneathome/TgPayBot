@@ -25,7 +25,7 @@ namespace Sender.DataSource.SenderAgents
             ChatId destId = null;
             var user = _dbContext.Users.SingleOrDefault(
                 x => x.Username != null && x.Username.ToLower() == message.To.ToLower()
-                || x.PhoneNumber == _phoneHelper.GetOnlyNumerics(message.To.ToLower()));
+                || x.PhoneNumber == _phoneHelper.Clear(message.To.ToLower()));
             if (user == null)
             {
                 return new MessageSendResult()

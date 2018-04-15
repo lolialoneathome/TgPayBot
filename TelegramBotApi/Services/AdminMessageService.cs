@@ -45,7 +45,7 @@ namespace TelegramBotApi.Services
                     "Подписка не активна.");
                 return;
             }
-            var clearedPhoneNumber = _phoneHelper.GetOnlyNumerics(user.PhoneNumber);
+            var clearedPhoneNumber = _phoneHelper.Clear(user.PhoneNumber);
             if (_configService.Config.Admins.Contains(clearedPhoneNumber))
             {
                 var result = string.Join("\n", _dbContext.Users.Select(x => $"{x.Username} {_phoneHelper.Format(x.PhoneNumber)}").ToArray());
@@ -64,7 +64,7 @@ namespace TelegramBotApi.Services
         public async Task StartSending(long chatId)
         {
             var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
-            var clearedPhoneNumber = user != null ? _phoneHelper.GetOnlyNumerics(user.PhoneNumber) : null;
+            var clearedPhoneNumber = user != null ? _phoneHelper.Clear(user.PhoneNumber) : null;
             if (clearedPhoneNumber != null && _configService.Config.Admins.Contains(clearedPhoneNumber))
             {
                 var state = _dbContext.States.First();
@@ -102,7 +102,7 @@ namespace TelegramBotApi.Services
         public async Task StopSending(long chatId)
         {
             var user = _dbContext.Users.Where(x => x.ChatId == chatId.ToString()).SingleOrDefault();
-            var clearedPhoneNumber = user != null ? _phoneHelper.GetOnlyNumerics(user.PhoneNumber) : null;
+            var clearedPhoneNumber = user != null ? _phoneHelper.Clear(user.PhoneNumber) : null;
             if (clearedPhoneNumber != null && _configService.Config.Admins.Contains(clearedPhoneNumber))
             {
                 var state = _dbContext.States.First();

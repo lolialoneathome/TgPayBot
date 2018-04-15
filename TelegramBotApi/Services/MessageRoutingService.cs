@@ -29,7 +29,7 @@ namespace TelegramBotApi.Services
                     await _userMessageService.Unsubscribe(chatId, message.From.Username);
                     break;
                 case "Отправить код ещё раз":
-                    await _userMessageService.ResetCode(chatId);
+                    await _userMessageService.ResetCode(chatId, message.From.Username);
                     break;
                 case "/get_users":
                     await _adminMessageService.GetUsers(chatId);

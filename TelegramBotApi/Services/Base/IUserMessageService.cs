@@ -11,6 +11,6 @@ namespace TelegramBotApi.Services
         Task ReceiveTextMessage(long chatId, string text, string username);
         Task ReceiveVerifyPhoneNumberCode(UnauthorizedUser unauthUser, string text);
         Task ReceiveUnsupportedMessage(long chatId, string from);
-        Task ResetCode(long chatId);
+        Task ResetCode(long chatId, string from);
     }
 }
