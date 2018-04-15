@@ -12,6 +12,7 @@ using Sqllite;
 using Telegram.Bot;
 using TelegramBotApi.Services;
 using Utils;
+using Utils.DbLogger;
 using Utils.Logger;
 
 namespace TelegramBotApi
@@ -39,6 +40,7 @@ namespace TelegramBotApi
             services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("users")));
             services.AddScoped<IPhoneHelper, PhoneHelper>();
             services.AddScoped<IBotLogger, ToGoogleTableBotLogger>();
+            services.AddScoped<INewBotLogger, NewBotLogger>();
             services.AddScoped<ISheetsServiceProvider, SheetsServiceProvider>(p => new SheetsServiceProvider(
                 p.GetService<IConfigService>(),
                 Configuration.GetSection("Google").GetValue<string>("ClientSecretPath"),
