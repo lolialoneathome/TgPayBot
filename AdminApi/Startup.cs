@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -12,6 +13,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PayBot.Configuration;
 using Sqllite;
+using Sqllite.Logger;
+using NLog.Extensions.Logging;
+using AdminApi.Services;
 
 namespace AdminApi
 {
@@ -28,19 +32,30 @@ namespace AdminApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddTransient<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
+
+            services.AddSingleton<ILoggerFactory, LoggerFactory>();
+            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+            services.AddLogging((builder) => builder.SetMinimumLevel(LogLevel.Warning));
+
+            services.AddScoped<IConfigService, FromFileConfigService>(p => new FromFileConfigService(Configuration.GetValue<string>("ConfigPath")));
             services.AddDbContext<SqlliteDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("users")));
+            services.AddDbContext<LogDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("logs")));
+
+            services.AddScoped<IReadLogService, ReadLogService>();
+
             services.AddCors();
             services.AddAutoMapper();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env,
+            IServiceProvider serviceProvider)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            //configure NLog
+            loggerFactory.AddNLog();
+            loggerFactory.ConfigureNLog(Path.Combine(env.ContentRootPath, @"NLog.config"));
+
             app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             app.UseMvc();
         }
