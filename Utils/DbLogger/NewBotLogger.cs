@@ -47,7 +47,7 @@ namespace Utils.DbLogger
             switch (type)
             {
                 case MessageTypes.Auth:
-                    logResult = await LogIncoming(text, person);
+                    logResult = await LogAuth(text, person);
                     break;
                 case MessageTypes.Errors:
                     logResult = await LogError(text);
