@@ -67,7 +67,7 @@ namespace TelegramBotApi.Services
                 await Bot.Api.SendTextMessageAsync(chatId,
                     "Вы уже подписаны на рассылку");
                 await _logger.LogAuth(LogConst.UserAlreadySubscribetButSendContact, _phoneHelper.Format(clearedPhoneNumber));
-                await _newLogger.LogByType(MessageTypes.Incoming, LogConst.UserAlreadySubscribetButSendContact, _phoneHelper.Format(clearedPhoneNumber));
+                await _newLogger.LogByType(MessageTypes.Incoming, LogConst.UserAlreadySubscribetButSendContact, clearedPhoneNumber);
                 return;
             }
 
@@ -96,7 +96,7 @@ namespace TelegramBotApi.Services
                 "На ваш телефон отправлен код подтверждения, отправьте его сюда",
                 replyMarkup: ReplyMarkupResetCode);
             await _logger.LogAuth(LogConst.CodeSendedToUser, _phoneHelper.Format(clearedPhoneNumber));
-            await _newLogger.LogByType(MessageTypes.Auth, LogConst.CodeSendedToUser, _phoneHelper.Format(clearedPhoneNumber));
+            await _newLogger.LogByType(MessageTypes.Auth, LogConst.CodeSendedToUser, clearedPhoneNumber);
         }
 
         public async Task Unsubscribe(long chatId, string username)
