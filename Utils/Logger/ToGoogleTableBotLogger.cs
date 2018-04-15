@@ -14,9 +14,10 @@ namespace Utils.Logger
         private readonly IConfigService _configService;
         private readonly ISheetsServiceProvider _sheetServiceProvider;
         protected readonly ILogger<ToGoogleTableBotLogger> _toFileLogger;
-        public ToGoogleTableBotLogger(IConfigService configService, ISheetsServiceProvider sheetServiceProvider) {
+        public ToGoogleTableBotLogger(IConfigService configService, ISheetsServiceProvider sheetServiceProvider, ILogger<ToGoogleTableBotLogger> toFileLogger) {
             _configService = configService ?? throw new ArgumentNullException(nameof(configService));
             _sheetServiceProvider  = sheetServiceProvider ?? throw new ArgumentNullException(nameof(sheetServiceProvider));
+            _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
         }
 
         public async Task LogSended(string action, string user)
