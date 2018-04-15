@@ -26,7 +26,7 @@ namespace AdminApi.Controllers
         {
             try
             {
-                var list = _mapper.Map<IEnumerable<UserDto>>(_dbContext.Users.Skip(offcet).Take(limit).ToList();
+                var list = _mapper.Map<IEnumerable<UserDto>>(_dbContext.Users.Skip(offcet).Take(limit).ToList());
                 var result = new UserListDto() {
                     Total = _dbContext.Users.Count(),
                     List = list
