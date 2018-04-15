@@ -5,6 +5,7 @@ using Sqllite.Logger;
 
 namespace Utils.DbLogger
 {
+    //TODO! Refactorigng require
     public class NewBotLogger : INewBotLogger
     {
         protected readonly ILogger<NewBotLogger> _toFileLogger;
