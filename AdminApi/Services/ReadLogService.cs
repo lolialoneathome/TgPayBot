@@ -19,18 +19,20 @@ namespace AdminApi.Services
         {
             return await _logDbContext.Logs
                 .Where(x => x.PhoneNumber == phone)
+                .OrderByDescending(x => x.Date)
                 .Skip(offset)
                 .Take(limit)
-                .OrderByDescending(x => x.Date).ToListAsync();
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<LogMessage>> GetLog(MessageTypes type, int limit, int offset)
         {
             return await _logDbContext.Logs
                     .Where(x => x.Type == type)
+                    .OrderByDescending(x => x.Date)
                     .Skip(offset)
                     .Take(limit)
-                    .OrderByDescending(x => x.Date).ToListAsync();
+                    .ToListAsync();
         }
 
         public async Task<int> GetTotal(MessageTypes type)

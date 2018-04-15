@@ -9,6 +9,6 @@ namespace AdminApi.DTOs
     public class LogMessagesListDto
     {
         public int Total { get; set; }
-        public IEnumerable<LogMessage> List { get; set; }
+        public IEnumerable<LogMessageDto> List { get; set; }
     }
 }

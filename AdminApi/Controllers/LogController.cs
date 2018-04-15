@@ -1,10 +1,12 @@
 ﻿using AdminApi.DTOs;
 using AdminApi.Services;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Sqllite.Logger;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Utils;
@@ -17,10 +19,12 @@ namespace AdminApi.Controllers
         protected readonly IReadLogService _logService;
         protected readonly ILogger<LogController> _toFileLogger;
         protected readonly IPhoneHelper _phoneHelper;
-        public LogController(IReadLogService logService, ILogger<LogController> toFileLogger, IPhoneHelper phoneHelper) {
+        protected readonly IMapper _mapper;
+        public LogController(IReadLogService logService, ILogger<LogController> toFileLogger, IPhoneHelper phoneHelper, IMapper mapper) {
             _logService = logService ?? throw new ArgumentNullException(nameof(logService));
             _toFileLogger = toFileLogger ?? throw new ArgumentNullException(nameof(toFileLogger));
             _phoneHelper = phoneHelper ?? throw new ArgumentNullException(nameof(phoneHelper));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         [HttpGet("auth")]
@@ -30,7 +34,7 @@ namespace AdminApi.Controllers
             {
                 return Ok(new LogMessagesListDto() {
                     Total = await _logService.GetTotal(MessageTypes.Auth),
-                    List = await _logService.GetLog(MessageTypes.Auth, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.Auth, limit, offset))
                 });
             }
             catch (Exception err)
@@ -48,7 +52,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotal(MessageTypes.System),
-                    List = await _logService.GetLog(MessageTypes.System, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.System, limit, offset))
                 });
             }
             catch (Exception err)
@@ -66,7 +70,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotal(MessageTypes.Outgoing),
-                    List = await _logService.GetLog(MessageTypes.Outgoing, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.Outgoing, limit, offset))
                 });
             }
             catch (Exception err)
@@ -84,7 +88,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotal(MessageTypes.Incoming),
-                    List = await _logService.GetLog(MessageTypes.Incoming, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.Incoming, limit, offset))
                 });
             }
             catch (Exception err)
@@ -102,7 +106,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotal(MessageTypes.Errors),
-                    List = await _logService.GetLog(MessageTypes.Errors, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.Errors, limit, offset))
                 });
             }
             catch (Exception err)
@@ -120,7 +124,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotal(MessageTypes.SystemErrors),
-                    List = await _logService.GetLog(MessageTypes.SystemErrors, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetLog(MessageTypes.SystemErrors, limit, offset))
                 });
             }
             catch (Exception err)
@@ -140,7 +144,7 @@ namespace AdminApi.Controllers
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotalByUserPhone(phone),
-                    List = await _logService.GetByUserPhone(phone, limit, offset)
+                    List = _mapper.Map<IEnumerable<LogMessageDto>>(await _logService.GetByUserPhone(phone, limit, offset))
                 });
 
             }

@@ -16,6 +16,8 @@ using Sqllite;
 using Sqllite.Logger;
 using NLog.Extensions.Logging;
 using AdminApi.Services;
+using Utils;
+using AdminApi.DTOs;
 
 namespace AdminApi
 {
@@ -42,9 +44,13 @@ namespace AdminApi
             services.AddDbContext<LogDbContext>(options => options.UseSqlite(Configuration.GetConnectionString("logs")));
 
             services.AddScoped<IReadLogService, ReadLogService>();
-
+            services.AddTransient<IPhoneHelper, PhoneHelper>();
             services.AddCors();
-            services.AddAutoMapper();
+            // services.AddAutoMapper();
+            services.AddSingleton(provider => new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile(new MappingProfile(provider.GetService<IPhoneHelper>()));
+            }).CreateMapper());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
