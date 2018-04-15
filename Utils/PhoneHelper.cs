@@ -24,7 +24,7 @@ namespace Utils
 
         public bool IsPhone(string phone)
         {
-            return Regex.IsMatch(phone, @"^((1-)?\d{3}-)?\d{3}-\d{4}$");
+            return Clear(phone).Length == 11;
         }
 
         public string Clear(string phone) {

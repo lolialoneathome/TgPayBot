@@ -141,6 +141,8 @@ namespace AdminApi.Controllers
             {
                 if (_phoneHelper.IsPhone(phone))
                     phone = _phoneHelper.Clear(phone);
+                if (phone == null)
+                    return BadRequest("Bad phone number");
                 return Ok(new LogMessagesListDto()
                 {
                     Total = await _logService.GetTotalByUserPhone(phone),
