@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PayBot.Configuration;
 using System;
 using System.Threading.Tasks;
 
 namespace AdminApi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     public class ConfigController : Controller
     {

@@ -1,6 +1,7 @@
 ﻿using AdminApi.DTOs;
 using AdminApi.Services;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using Utils;
 
 namespace AdminApi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     public class LogController : Controller
     {

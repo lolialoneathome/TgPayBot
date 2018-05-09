@@ -1,5 +1,6 @@
 ﻿using AdminApi.DTOs;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sqllite;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace AdminApi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     public class UserController : Controller
     {
